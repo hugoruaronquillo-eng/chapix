@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Fútbol Chapas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+body{background:#0a1f12;color:#fff;font-family:system-ui,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;height:100dvh}
+#hud{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;background:#111c16;border-bottom:2px solid #1f3a2a}
+#hud.hide{visibility:hidden}
+.team{font-weight:800;font-size:clamp(14px,3.2vw,26px);letter-spacing:1px;display:flex;align-items:center;gap:10px}
+.team b{font-size:clamp(22px,5vw,40px);background:#000a;border-radius:8px;padding:0 12px;min-width:1.6em;text-align:center}
+.blue{color:#6db3ff}.red{color:#ff7b7b}
+#mid{text-align:center;flex:1}
+#time{font-size:clamp(20px,4.5vw,32px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+#turn{font-size:clamp(11px,2.4vw,16px);font-weight:700;padding:2px 10px;border-radius:12px;display:inline-block;margin:2px 0;background:#000a}
+#row{display:flex;gap:8px;align-items:center;justify-content:center;font-size:12px;color:#bcd}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:8px 14px;background:#ffd60a;color:#222;cursor:pointer}
+button:active{transform:scale(.96)}
+button.sm{padding:3px 10px;font-size:12px}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+canvas{touch-action:none;display:block}
+.screen{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;
+ background:radial-gradient(ellipse at center,#031a0a99 0%,#010a05ee 100%);opacity:0;visibility:hidden;transform:scale(.96);transition:opacity .3s,transform .3s,visibility .3s}
+.screen.on{opacity:1;visibility:visible;transform:none}
+.screen h1{font-family:Impact,'Arial Black',sans-serif;font-style:italic;font-size:clamp(38px,10vw,92px);letter-spacing:2px;text-shadow:0 4px 0 #0a5,0 8px 18px #000}
+.screen h1 span{color:#ffd60a}
+.screen h2{font-size:clamp(24px,6vw,44px)}
+.screen p{font-size:clamp(14px,3vw,20px);opacity:.85}
+.screen button{width:min(330px,82vw);padding:14px;font-size:clamp(16px,3.6vw,22px);text-transform:uppercase;letter-spacing:1px;box-shadow:0 5px 0 #a08400}
+.screen button.alt{background:#2a4d36;color:#fff;box-shadow:0 5px 0 #14291c}
+#endT{font-size:clamp(28px,7vw,60px)}
+#endS{font-size:clamp(20px,5vw,36px);font-weight:700;opacity:1}
+</style>
+</head>
+<body>
+<div id="hud" class="hide">
+  <div class="team blue">AZULES <b id="sb">0</b></div>
+  <div id="mid">
+    <div id="time">2:00</div><div id="turn">Turno: AZULES</div>
+    <div id="row"><button class="sm" id="bMenu">☰ Menú</button><span id="dl"></span><button class="sm" id="rst">↻ Reiniciar</button></div>
+  </div>
+  <div class="team red"><b id="sr">0</b> ROJOS</div>
+</div>
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<div id="menu" class="screen on">
+  <h1>FÚTBOL <span>CHAPAS</span></h1>
+  <p>⚽ Cuatro chapas por equipo · Un balón · Mucha puntería</p>
+  <button data-go="two">Dos jugadores</button>
+  <button data-go="diff">Jugar contra BOT</button>
+  <button class="alt" data-go="opts">Opciones</button>
+</div>
+<div id="diff" class="screen">
+  <h2>Elige la dificultad</h2><p>Juegas con los AZULES contra el BOT (ROJOS)</p>
+  <button data-d="easy">Fácil</button>
+  <button data-d="normal">Normal</button>
+  <button data-d="hard">Difícil</button>
+  <button class="alt" data-go="menu">← Volver</button>
+</div>
+<div id="opts" class="screen">
+  <h2>Opciones</h2>
+  <button id="oTime">Duración: 2 min</button>
+  <button id="oGoals">Goles para ganar: 3</button>
+  <button class="alt" data-go="menu">← Volver</button>
+</div>
+<div id="end" class="screen">
+  <h1 id="endT"></h1><p id="endS"></p>
+  <button id="again">Jugar otra partida</button>
+  <button class="alt" data-go="menu">Menú principal</button>
+</div>
+
+<script>
+(()=>{
+"use strict";
+// ---------- Constantes ----------
+const FW=1050,FH=680,GD=50,M=24,CW=FW+2*GD,CH=FH+2*M,CY=FH/2,GY1=CY-95,GY2=CY+95;
+const RC=24,RB=13,MAXD=160,SPD=10.5,MAXB=2300,MAXC=2000,DT=1/240;
+let GAME_TIME=120,WIN_GOALS=3;
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage');
+const $=id=>document.getElementById(id);
+const DNAME={easy:'Fácil',normal:'Normal',hard:'Difícil'};
+let caps,ball,all,posts,turn='blue',state='menu',score={blue:0,red:0},time=GAME_TIME,started=false,drag=null,stopT=0,goalT=0,goalMsg='',moveT=0,acc=0,last=0;
+let mode='two',diff='normal',bot=null,botT=0;
+
+// ---------- Piezas ----------
+const mk=(x,y,r,im,t)=>({x,y,r,im,vx:0,vy:0,t});
+posts=[[0,GY1],[0,GY2],[FW,GY1],[FW,GY2]].map(p=>mk(p[0],p[1],6,0,'post'));
+// Formación en rombo (simétrica): adelantada, dos laterales y una retrasada
+const FORM=[[360,0],[245,-105],[245,105],[130,0]];
+function placePieces(){
+  caps=[];
+  for(const [x,dy] of FORM){caps.push(mk(x,CY+dy,RC,.25,'blue'));caps.push(mk(FW-x,CY+dy,RC,.25,'red'));}
+  ball=mk(FW/2,CY,RB,1,'ball');
+  all=caps.concat([ball]);
+}
+
+// ---------- Física (motor original, sin cambios) ----------
+function friction(p,dt){
+  const isB=p.t==='ball',k=isB?1.3:2.2,c=isB?30:60;
+  let sp=Math.hypot(p.vx,p.vy);
+  if(sp===0)return;
+  let ns=sp*Math.exp(-k*dt)-c*dt;
+  if(ns<8){p.vx=p.vy=0;return;}
+  const f=ns/sp;p.vx*=f;p.vy*=f;
+  const mx=isB?MAXB:MAXC;if(ns>mx){p.vx*=mx/ns;p.vy*=mx/ns;}
+}
+function collide(a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,rr=a.r+b.r,d2=dx*dx+dy*dy;
+  if(d2>=rr*rr)return;
+  let d=Math.sqrt(d2),nx,ny;
+  if(d<1e-6){nx=1;ny=0;d=0;}else{nx=dx/d;ny=dy/d;}
+  const sum=a.im+b.im;if(sum===0)return;
+  const ov=rr-d;
+  a.x-=nx*ov*a.im/sum;a.y-=ny*ov*a.im/sum;
+  b.x+=nx*ov*b.im/sum;b.y+=ny*ov*b.im/sum;
+  const vn=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
+  if(vn<0){
+    let e=(a.t==='post'||b.t==='post')?.6:(a.t==='ball'||b.t==='ball')?.85:.8;
+    if(-vn<25)e=0;
+    const j=-(1+e)*vn/sum;
+    a.vx-=j*a.im*nx;a.vy-=j*a.im*ny;b.vx+=j*b.im*nx;b.vy+=j*b.im*ny;
+  }
+}
+function wallsCap(p){
+  const r=p.r,E=.6;
+  if(p.x<r){p.x=r;p.vx=Math.abs(p.vx)*E;}
+  if(p.x>FW-r){p.x=FW-r;p.vx=-Math.abs(p.vx)*E;}
+  if(p.y<r){p.y=r;p.vy=Math.abs(p.vy)*E;}
+  if(p.y>FH-r){p.y=FH-r;p.vy=-Math.abs(p.vy)*E;}
+}
+function wallsBall(b){
+  const r=b.r,E=.8;
+  if(b.x<0||b.x>FW){
+    if(b.y<GY1+r){b.y=GY1+r;b.vy=Math.abs(b.vy)*E;}
+    if(b.y>GY2-r){b.y=GY2-r;b.vy=-Math.abs(b.vy)*E;}
+    if(b.x<-GD+r){b.x=-GD+r;b.vx=Math.abs(b.vx)*E;}
+    if(b.x>FW+GD-r){b.x=FW+GD-r;b.vx=-Math.abs(b.vx)*E;}
+  }else{
+    if(b.y<r){b.y=r;b.vy=Math.abs(b.vy)*E;}
+    if(b.y>FH-r){b.y=FH-r;b.vy=-Math.abs(b.vy)*E;}
+    const mouth=b.y>GY1&&b.y<GY2;
+    if(!mouth){
+      if(b.x<r){b.x=r;b.vx=Math.abs(b.vx)*E;}
+      if(b.x>FW-r){b.x=FW-r;b.vx=-Math.abs(b.vx)*E;}
+    }
+  }
+}
+function step(dt){
+  for(const p of all){p.x+=p.vx*dt;p.y+=p.vy*dt;friction(p,dt);}
+  if(ball.x<-ball.r&&ball.y>GY1&&ball.y<GY2)return 'red';
+  if(ball.x>FW+ball.r&&ball.y>GY1&&ball.y<GY2)return 'blue';
+  for(let it=0;it<3;it++){
+    for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++)collide(all[i],all[j]);
+    for(const po of posts)for(const p of all)collide(po,p);
+    for(const p of caps)wallsCap(p);
+    wallsBall(ball);
+  }
+  return null;
+}
+function allStopped(){return all.every(p=>p.vx===0&&p.vy===0);}
+
+// ---------- Golpeo (común a jugador y BOT) ----------
+function launch(c,px,py){
+  const len=Math.hypot(px,py),l=Math.min(len,MAXD);
+  c.vx=-px/len*l*SPD;c.vy=-py/len*l*SPD;
+  started=true;state='moving';stopT=0;moveT=0;acc=0;
+}
+
+// ---------- IA ----------
+// Misma lógica para las tres dificultades: simula cada golpe candidato con el motor real
+// y elige el mejor. Solo cambian la precisión de ejecución y la probabilidad de elegir lo mejor.
+const DIFF={easy:{sa:.075,sp:.2,pb:.3,k:6},normal:{sa:.035,sp:.09,pb:.6,k:3},hard:{sa:.012,sp:.035,pb:.85,k:2}};
+const gauss=()=>(Math.random()+Math.random()+Math.random()-1.5)*2;
+function segDist(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);
+  t=Math.max(0,Math.min(1,t));return Math.hypot(px-ax-t*dx,py-ay-t*dy);
+}
+function evalS(g,moved){
+  if(g==='red')return 1e5;
+  if(g==='blue')return -1e5;
+  let s=-Math.hypot(ball.x,ball.y-CY)+.4*Math.hypot(ball.x-FW,ball.y-CY);
+  if(!moved&&ball.x<FW*.5)s-=250;
+  if(ball.x>FW*.45){ // defensa: chapas entre el balón y la portería propia
+    let m=1e9;
+    for(const c of caps)if(c.t==='red')m=Math.min(m,segDist(c.x,c.y,ball.x,ball.y,FW,CY));
+    s-=m*.7;
+  }
+  return s;
+}
+function think(){
+  const P=DIFF[diff],snap=all.map(p=>[p.x,p.y]),bx=ball.x,by=ball.y,cands=[];
+  const restore=()=>all.forEach((p,i)=>{p.x=snap[i][0];p.y=snap[i][1];p.vx=p.vy=0;});
+  const targets=[];
+  for(const ty of [CY,GY1+28,GY2-28])targets.push([0,ty],[0,-ty],[0,2*FH-ty]); // directos y rebotando en bandas
+  const gl=Math.hypot(bx-FW,by-CY)||1,tdx=FW+(bx-FW)/gl*140,tdy=CY+(by-CY)/gl*140; // punto de cobertura
+  for(const c of caps){
+    if(c.t!=='red')continue;
+    const dirs=[];
+    for(const [tx,ty] of targets){
+      let dx=tx-bx,dy=ty-by;const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
+      dirs.push([Math.atan2(by-dy*(RC+RB)-c.y,bx-dx*(RC+RB)-c.x),[.5,.75,1]]);
+    }
+    const ab=Math.atan2(by-c.y,bx-c.x);
+    dirs.push([ab-.1,[.6,1]],[ab,[.6,1]],[ab+.1,[.6,1]]);
+    dirs.push([Math.atan2(tdy-c.y,tdx-c.x),[.15,.25,.4]]);
+    for(const [ang,fs] of dirs)for(const f of fs){
+      const l=f*MAXD;restore();
+      c.vx=Math.cos(ang)*l*SPD;c.vy=Math.sin(ang)*l*SPD;
+      let g=null,moved=false;
+      for(let i=0;i<600&&!g;i++){g=step(DT);if(ball.vx||ball.vy)moved=true;if(i%30===29&&allStopped())break;}
+      cands.push({c,ang,l,s:evalS(g,moved)+Math.random()*15});
+    }
+  }
+  restore();
+  cands.sort((a,b)=>b.s-a.s);
+  const idx=Math.random()<P.pb?0:1+Math.floor(Math.random()*(P.k-1));
+  const ch=cands[Math.min(idx,cands.length-1)];
+  const ang=ch.ang+gauss()*P.sa;
+  const l=Math.max(30,Math.min(MAXD,ch.l*(1+gauss()*P.sp)));
+  return{c:ch.c,px:-Math.cos(ang)*l,py:-Math.sin(ang)*l};
+}
+function botUpdate(dt){
+  botT+=dt;
+  if(!bot&&botT>.7){bot=think();botT=0;}
+  if(bot){
+    const k=Math.min(1,botT/.6),e=k*k*(3-2*k);
+    drag={c:bot.c,sx:bot.c.x,sy:bot.c.y,x:bot.c.x+bot.px*e,y:bot.c.y+bot.py*e,id:-1}; // animación de "arrastre"
+    if(k>=1){const d=bot;bot=null;drag=null;botT=0;launch(d.c,d.px,d.py);}
+  }
+}
+
+// ---------- Flujo de juego ----------
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));}
+function newGame(){
+  score={blue:0,red:0};time=GAME_TIME;started=false;turn=mode==='bot'?'blue':(Math.random()<.5?'blue':'red');
+  state='aim';drag=null;stopT=0;moveT=0;goalT=0;acc=0;bot=null;botT=0;
+  placePieces();show(null);$('hud').classList.remove('hide');ui();
+}
+function toMenu(){
+  state='menu';drag=null;bot=null;botT=0;placePieces();score={blue:0,red:0};time=GAME_TIME;turn='blue';
+  $('hud').classList.add('hide');show('menu');ui();
+}
+function nextTurn(){turn=turn==='blue'?'red':'blue';state='aim';stopT=0;moveT=0;bot=null;botT=0;}
+function goal(scorer){
+  score[scorer]++;state='goal';goalT=1.4;goalMsg='¡GOL de '+(scorer==='blue'?'AZULES':'ROJOS')+'!';
+  turn=scorer==='blue'?'red':'blue';bot=null;botT=0;
+  ui();
+}
+function endGame(){
+  state='over';drag=null;bot=null;
+  const b=score.blue,r=score.red;
+  let t,c;
+  if(b===r){t='EMPATE';c='#fff';}
+  else if(mode==='bot'){t=b>r?'¡HAS GANADO!':'GANA EL BOT';c=b>r?'#6db3ff':'#ff7b7b';}
+  else{t=b>r?'¡GANAN LOS AZULES!':'¡GANAN LOS ROJOS!';c=b>r?'#6db3ff':'#ff7b7b';}
+  $('endT').textContent=t;$('endT').style.color=c;
+  $('endS').textContent='AZULES '+b+' - '+r+' ROJOS';
+  show('end');
+}
+function update(dt){
+  if(state==='goal'){
+    goalT-=dt;
+    if(goalT<=0){if(score.blue>=WIN_GOALS||score.red>=WIN_GOALS)endGame();else{placePieces();state='aim';stopT=0;moveT=0;}}
+    return;
+  }
+  if(state!=='aim'&&state!=='moving')return;
+  if(started){time-=dt;if(time<=0){time=0;ui();endGame();return;}}
+  if(state==='aim'&&mode==='bot'&&turn==='red')botUpdate(dt);
+  if(state==='moving'){
+    moveT+=dt;acc+=dt;let n=0;
+    while(acc>=DT&&n++<40){
+      const g=step(DT);acc-=DT;
+      if(g){goal(g);acc=0;return;}
+    }
+    if(n>=40)acc=0;
+    if(allStopped()){stopT+=dt;if(stopT>.2)nextTurn();}else stopT=0;
+    if(moveT>15){for(const p of all)p.vx=p.vy=0;}
+  }
+}
+
+// ---------- Entrada (Pointer Events) ----------
+function pos(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*CW/r.width-GD,y:(e.clientY-r.top)*CH/r.height-M};}
+cv.addEventListener('pointerdown',e=>{
+  if(state!=='aim'||drag||(mode==='bot'&&turn==='red'))return;
+  const p=pos(e);let best=null,bd=1e9;
+  for(const c of caps){if(c.t!==turn)continue;const d=Math.hypot(c.x-p.x,c.y-p.y);if(d<c.r+18&&d<bd){bd=d;best=c;}}
+  if(!best)return;
+  drag={c:best,sx:p.x,sy:p.y,x:p.x,y:p.y,id:e.pointerId};
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  e.preventDefault();
+});
+cv.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const p=pos(e);drag.x=p.x;drag.y=p.y;e.preventDefault();
+});
+cv.addEventListener('pointerup',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const p=pos(e),d=drag;drag=null;
+  if(state!=='aim')return;
+  const px=p.x-d.sx,py=p.y-d.sy;
+  if(Math.hypot(px,py)<10)return;
+  launch(d.c,px,py);
+});
+cv.addEventListener('pointercancel',e=>{if(drag&&e.pointerId===drag.id)drag=null;});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+
+// ---------- Dibujo ----------
+function drawField(){
+  ctx.fillStyle='#0d3b1e';ctx.fillRect(-GD,-M,CW,CH);
+  const n=14,w=FW/n;
+  for(let i=0;i<n;i++){ctx.fillStyle=i%2?'#2c9246':'#32a04d';ctx.fillRect(i*w,0,w+1,FH);}
+  ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.strokeRect(0,0,FW,FH);
+  ctx.beginPath();ctx.moveTo(FW/2,0);ctx.lineTo(FW/2,FH);ctx.stroke();
+  ctx.beginPath();ctx.arc(FW/2,CY,90,0,7);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(FW/2,CY,5,0,7);ctx.fill();
+  for(const s of [0,1]){
+    const f=s?-1:1,x0=s?FW:0;
+    ctx.strokeRect(s?FW-165:0,CY-200,165,400);
+    ctx.strokeRect(s?FW-55:0,CY-110,55,220);
+    ctx.beginPath();ctx.arc(x0+f*115,CY,5,0,7);ctx.fill();
+    const a=Math.acos(50/80);ctx.beginPath();
+    if(!s)ctx.arc(115,CY,80,-a,a);else ctx.arc(FW-115,CY,80,Math.PI-a,Math.PI+a);
+    ctx.stroke();
+  }
+  for(const s of [0,1]){
+    const x=s?FW:-GD;
+    ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(x,GY1,GD,GY2-GY1);
+    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;ctx.beginPath();
+    for(let i=0;i<=GD;i+=10){ctx.moveTo(x+i,GY1);ctx.lineTo(x+i,GY2);}
+    for(let y=GY1;y<=GY2;y+=10){ctx.moveTo(x,y);ctx.lineTo(x+GD,y);}
+    ctx.stroke();
+    ctx.strokeStyle='#fff';ctx.lineWidth=4;ctx.strokeRect(x,GY1,GD,GY2-GY1);
+  }
+  ctx.fillStyle='#fff';
+  for(const p of posts){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
+}
+function drawCap(c,t){
+  const col=c.t==='blue'?['#8cc4ff','#1e63d6','#0a3585']:['#ff9a9a','#d62828','#7a0c0c'];
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(c.x+4,c.y+6,c.r,c.r*.9,0,0,7);ctx.fill();
+  if(c.t===turn&&(state==='aim'||state==='moving')){
+    ctx.shadowColor='#ffe600';ctx.shadowBlur=14+3*Math.sin(t*5);
+    ctx.strokeStyle='#ffe600';ctx.lineWidth=4;ctx.beginPath();ctx.arc(c.x,c.y,c.r+5,0,7);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+  const g=ctx.createRadialGradient(c.x-8,c.y-8,2,c.x,c.y,c.r);
+  g.addColorStop(0,col[0]);g.addColorStop(.6,col[1]);g.addColorStop(1,col[2]);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,7);ctx.fill();
+  ctx.strokeStyle=col[2];ctx.lineWidth=3;ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(c.x,c.y,c.r*.58,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.ellipse(c.x-8,c.y-9,6,3.5,-.7,0,7);ctx.fill();
+  ctx.restore();
+}
+function drawBall(b){
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(b.x+3,b.y+4,b.r,b.r*.9,0,0,7);ctx.fill();
+  const g=ctx.createRadialGradient(b.x-4,b.y-4,1,b.x,b.y,b.r);
+  g.addColorStop(0,'#fff');g.addColorStop(1,'#d4d4d4');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill();
+  ctx.strokeStyle='#8a8a8a';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='#555';ctx.beginPath();ctx.arc(b.x,b.y,b.r*.32,0,7);ctx.fill();
+  ctx.restore();
+}
+function drawAim(){
+  if(!drag)return;
+  const c=drag.c;let px=drag.x-drag.sx,py=drag.y-drag.sy;const len=Math.hypot(px,py);
+  if(len<1)return;
+  const l=Math.min(len,MAXD),ux=px/len,uy=py/len;
+  ctx.save();ctx.lineCap='round';
+  ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(c.x+ux*l,c.y+uy*l);ctx.stroke();
+  ctx.setLineDash([10,8]);ctx.strokeStyle='#fff';ctx.lineWidth=3;
+  const L=50+l*3.2;
+  ctx.beginPath();ctx.moveTo(c.x-ux*c.r,c.y-uy*c.r);ctx.lineTo(c.x-ux*L,c.y-uy*L);ctx.stroke();
+  ctx.setLineDash([]);ctx.fillStyle='#ffe600';
+  ctx.beginPath();ctx.arc(c.x-ux*L,c.y-uy*L,5,0,7);ctx.fill();
+  ctx.restore();
+}
+function draw(t){
+  ctx.setTransform(cv.width/CW,0,0,cv.height/CH,0,0);
+  ctx.translate(GD,M);
+  drawField();
+  for(const c of caps)drawCap(c,t);
+  drawBall(ball);
+  drawAim();
+  if(state==='goal'){
+    ctx.save();ctx.font='900 80px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=8;ctx.strokeStyle='#000a';ctx.strokeText(goalMsg,FW/2,CY);
+    ctx.fillStyle='#ffe600';ctx.fillText(goalMsg,FW/2,CY);ctx.restore();
+  }
+}
+
+// ---------- UI ----------
+function ui(){
+  $('sb').textContent=score.blue;$('sr').textContent=score.red;
+  const s=Math.ceil(time);$('time').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  const tn=$('turn');
+  tn.textContent=mode==='bot'?(turn==='red'?'Turno del BOT':'Tu turno · AZULES'):'Turno: '+(turn==='blue'?'AZULES':'ROJOS');
+  tn.style.color=turn==='blue'?'#6db3ff':'#ff7b7b';
+  $('dl').textContent=mode==='bot'?'BOT: '+DNAME[diff]:'Dos jugadores';
+}
+function fit(){
+  const r=stage.getBoundingClientRect(),sc=Math.min(r.width/CW,r.height/CH);
+  const w=Math.max(10,CW*sc),h=Math.max(10,CH*sc),d=window.devicePixelRatio||1;
+  cv.style.width=w+'px';cv.style.height=h+'px';cv.width=Math.round(w*d);cv.height=Math.round(h*d);
+}
+window.addEventListener('resize',fit);
+
+// Menús
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
+  const g=b.dataset.go;
+  if(g==='two'){mode='two';newGame();}
+  else if(g==='menu')toMenu();
+  else show(g);
+}));
+document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{diff=b.dataset.d;mode='bot';newGame();}));
+const TIMES=[120,180,240,300,360,420,480,540,600];
+const GOALS=[1,2,3,4,5];
+$('oTime').addEventListener('click',()=>{GAME_TIME=TIMES[(TIMES.indexOf(GAME_TIME)+1)%TIMES.length];$('oTime').textContent='Duración: '+GAME_TIME/60+' min';});
+$('oGoals').addEventListener('click',()=>{WIN_GOALS=GOALS[(GOALS.indexOf(WIN_GOALS)+1)%GOALS.length];$('oGoals').textContent='Goles para ganar: '+WIN_GOALS;});
+$('rst').addEventListener('click',newGame);
+$('bMenu').addEventListener('click',toMenu);
+$('again').addEventListener('click',newGame);
+
+function loop(ms){
+  const t=ms/1000,dt=Math.min(.1,last?t-last:0);last=t;
+  update(dt);ui();draw(t);
+  requestAnimationFrame(loop);
+}
+placePieces();ui();fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
