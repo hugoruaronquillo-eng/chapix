@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>CHAPIX</title>
+<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+body{background:#0a1f12;color:#fff;font-family:system-ui,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;height:100dvh}
+#hud{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;background:#111c16;border-bottom:2px solid #1f3a2a}
+#hud.hide{visibility:hidden}
+.team{font-weight:800;font-size:clamp(14px,3.2vw,26px);letter-spacing:1px;display:flex;align-items:center;gap:10px}
+.team span{max-width:24vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team b{font-size:clamp(22px,5vw,40px);background:#000a;border-radius:8px;padding:0 12px;min-width:1.6em;text-align:center}
+.blue{color:#6db3ff}.red{color:#ff7b7b}
+#mid{text-align:center;flex:1}
+#time{font-size:clamp(20px,4.5vw,32px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+#turn{font-size:clamp(11px,2.4vw,16px);font-weight:700;padding:2px 10px;border-radius:12px;display:inline-block;margin:2px 0;background:#000a}
+#row{display:flex;gap:8px;align-items:center;justify-content:center;font-size:12px;color:#bcd}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:8px 14px;background:#ffd60a;color:#222;cursor:pointer}
+button:active{transform:scale(.96)}
+button.sm{padding:3px 10px;font-size:12px}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+canvas{touch-action:none;display:block}
+.screen{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;
+background:radial-gradient(ellipse at center,#031a0a99 0%,#010a05ee 100%);opacity:0;visibility:hidden;transform:scale(.96);transition:opacity .3s,transform .3s,visibility .3s}
+.screen.on{opacity:1;visibility:visible;transform:none}
+.screen h1{font-family:Impact,'Arial Black',sans-serif;font-style:italic;font-size:clamp(38px,10vw,92px);letter-spacing:2px;text-shadow:0 4px 0 #0a5,0 8px 18px #000}
+.screen h1 span{color:#ffd60a}
+.screen h2{font-size:clamp(24px,6vw,44px)}
+.screen p{font-size:clamp(14px,3vw,20px);opacity:.85}
+.screen button{width:min(330px,82vw);padding:14px;font-size:clamp(16px,3.6vw,22px);text-transform:uppercase;letter-spacing:1px;box-shadow:0 5px 0 #a08400}
+.screen button.alt{background:#2a4d36;color:#fff;box-shadow:0 5px 0 #14291c}
+.screen button:disabled{opacity:.4;box-shadow:none;cursor:not-allowed}
+#endT{font-size:clamp(28px,7vw,60px)}
+#endS{font-size:clamp(20px,5vw,36px);font-weight:700;opacity:1}
+/* ---- Menú principal: cuadrícula 2x2 + botón de ajustes ---- */
+.mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,2.4vw,18px);width:min(640px,92vw)}
+.screen .mgrid button{width:100%;padding:14px 8px;font-size:clamp(14px,3.4vw,22px);white-space:nowrap}
+#menu #gear{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));width:48px;height:48px;padding:0;border-radius:50%;font-size:26px;line-height:1;letter-spacing:0;box-shadow:0 4px 0 #14291c}
+@media (max-height:380px){#menu h1{font-size:clamp(30px,9vh,44px)}#menu p{display:none}}
+/* ---- Torneo ---- */
+.screen.tall{justify-content:flex-start;gap:8px;padding:12px 10px}
+.screen.tall h2{font-size:clamp(20px,4.5vw,32px)}
+.screen.tall button{padding:10px;font-size:clamp(14px,3vw,18px)}
+.screen h3{font-size:13px;letter-spacing:1px;opacity:.8;margin:10px 0 5px;text-transform:uppercase}
+.scroll{overflow:auto;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch;width:min(960px,100%);flex:1;min-height:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.chip{padding:7px 12px;border-radius:18px;background:#14291c;border:2px solid #1f3a2a;font-weight:700;cursor:pointer;font-size:14px}
+.chip.on{background:#ffd60a;color:#222;border-color:#ffd60a}
+#tgrid,#sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;padding:2px}
+.tc{position:relative;background:#14291c;border:3px solid #1f3a2a;border-radius:12px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-size:13px}
+.tc .fg{font-size:30px;line-height:1}
+.tc i{width:26px;height:26px;border-radius:50%;box-shadow:0 0 0 2px #fffa}
+.tc small{position:absolute;top:3px;left:6px;opacity:.6;font-size:11px}
+.tc.sel{border-color:#ffd60a;background:#2a4d36;box-shadow:0 0 14px #ffd60a99}
+.tc.sel::after{content:"✓";position:absolute;top:1px;right:6px;color:#ffd60a;font-weight:900}
+.brow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:min(660px,100%)}
+.brow button{width:auto;flex:1 1 150px}
+#bk{display:flex;gap:16px;padding:8px;min-width:max-content;align-items:stretch;height:100%;min-height:900px;flex-shrink:0}
+.rc{display:flex;flex-direction:column;width:175px}
+.rc h4{text-align:center;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#ffd60a;margin-bottom:4px}
+.rc .ml{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:6px}
+.mc{background:#14291c;border:2px solid #1f3a2a;border-radius:10px;overflow:hidden;text-align:left;font-size:12px}
+.rc .ml>.mc{flex:0 0 auto}
+.mc.cur{border-color:#ffd60a;box-shadow:0 0 10px #ffd60a88}
+.tr{display:flex;align-items:center;gap:5px;padding:4px 6px;white-space:nowrap}
+.tr+.tr{border-top:1px solid #1f3a2a}
+.tr.l{opacity:.45}.tr.w{font-weight:800}.tr.me{background:#ffd60a22}
+.tr b{margin-left:auto;padding-left:6px}
+.tr i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px #fff8;flex:none}
+/* ---- Desafíos ---- */
+#clist{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:8px;padding:2px}
+.ch{display:flex;align-items:center;gap:10px;text-align:left;background:#14291c;border:3px solid #1f3a2a;border-radius:12px;padding:8px 10px;cursor:pointer}
+.ch .cn{font-family:Impact,'Arial Black',sans-serif;font-style:italic;font-size:22px;color:#ffd60a;min-width:28px;text-align:center}
+.ch .ci{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ch .ci b{font-size:14px;letter-spacing:.5px}
+.ch .ci small{font-size:11px;opacity:.8;line-height:1.25}
+.ch .ci em{font-style:normal;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.ch .lvm{color:#ffd60a}.ch .lvd{color:#ff9a3c}.ch .lve{color:#ff5d73}
+.ch .cs{font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
+.ch .cs small{display:block;font-weight:600;opacity:.7;font-size:10px}
+.ch.open{border-color:#2a4d36}
+.ch.open:active{transform:scale(.98)}
+.ch.done{border-color:#ffd60a;background:#2a4d36}
+.ch.lock{opacity:.5;cursor:not-allowed}
+#cwarn{color:#ff9a3c;font-size:12px}
+#chint .scroll{max-width:560px;display:flex;flex-direction:column;gap:12px;padding-top:6px}
+#hi{line-height:1.6}
+/* ---- Selección de equipos (2 jugadores, VS BOT, Desafíos) ---- */
+#tprev{display:flex;align-items:stretch;justify-content:center;gap:10px;width:min(560px,100%)}
+.slot{flex:1;min-width:0;background:#14291c;border:3px solid #1f3a2a;border-radius:12px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.slot.act{border-color:#ffd60a;box-shadow:0 0 12px #ffd60a88}
+.slot small{font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:1px}
+.slot b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cp{width:48px;height:48px;border-radius:50%;box-shadow:0 4px 0 #0008}
+.cp.q{background:#0a1f12;border:3px dashed #3a5a46;box-shadow:none;display:flex;align-items:center;justify-content:center;color:#3a5a46;font-weight:800}
+#tvs{align-self:center;font-family:Impact,'Arial Black',sans-serif;font-style:italic;color:#ffd60a;font-size:20px}
+#shint{font-size:13px;min-height:18px}
+#rtog button.on{background:#ffd60a;color:#222;box-shadow:0 5px 0 #a08400}
+#sgrid .tc.s1{border-color:#6db3ff;background:#1b3550}
+#sgrid .tc.s2{border-color:#ff7b7b;background:#4a2427}
+#sgrid .tc[data-b]::after{content:attr(data-b);position:absolute;top:2px;right:6px;font-weight:900;color:#ffd60a}
+@media (max-height:420px){#tsel h2{display:none}.cp{width:34px;height:34px}.slot small{display:none}}
+/* ---- Idioma ---- */
+#llist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;padding:2px}
+.lg{display:flex;align-items:center;gap:12px;background:#14291c;border:3px solid #1f3a2a;border-radius:12px;padding:12px 14px;cursor:pointer;font-size:17px;font-weight:700;text-align:left}
+.lg .fg{font-size:30px;line-height:1}
+.lg.on{border-color:#ffd60a;background:#2a4d36}
+.lg i{margin-left:auto;color:#ffd60a;font-style:normal}
+/* ---- Marcador vertical a la izquierda: SOLO teléfonos móviles en horizontal (clase puesta por JS) ---- */
+html.phone-land body{flex-direction:row}
+html.phone-land #stage{min-width:0}
+html.phone-land #hud{flex:none;flex-direction:column;justify-content:center;align-items:stretch;gap:6px;height:100%;width:clamp(94px,15.2vw,128px);padding:6px 6px;padding-left:max(6px,env(safe-area-inset-left));border-bottom:0;border-right:2px solid #1f3a2a;overflow:hidden}
+html.phone-land #tb{order:1}
+html.phone-land #trd{order:2;flex-direction:row-reverse}
+html.phone-land #mid{order:3;flex:none}
+html.phone-land .team{font-size:12px;justify-content:space-between;gap:4px;padding-bottom:2px}
+html.phone-land .team b{font-size:22px;padding:0 6px}
+html.phone-land .team span{max-width:60px}
+html.phone-land #time{font-size:24px}
+html.phone-land #turn{display:block;font-size:10px;padding:2px 4px;margin:3px 0}
+html.phone-land #row{flex-direction:column;gap:4px;font-size:10px}
+html.phone-land #row button{width:100%;padding:3px 4px}
+</style>
+</head>
+<body>
+<div id="hud" class="hide">
+  <div class="team blue" id="tb"><span id="lb">AZULES</span> <b id="sb">0</b></div>
+  <div id="mid">
+    <div id="time">2:00</div>
+    <div id="turn">Turno: AZULES</div>
+    <div id="row">
+      <button class="sm" id="bMenu" data-i="menuB">☰ Menú</button>
+      <span id="dl"></span>
+      <button class="sm" id="rst" data-i="rstB">↻ Reiniciar</button>
+    </div>
+  </div>
+  <div class="team red" id="trd"><b id="sr">0</b> <span id="lr">ROJOS</span></div>
+</div>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<div id="menu" class="screen on">
+  <h1>CHAP<span>IX</span></h1>
+  <p data-i="tag"></p>
+  <div class="mgrid">
+    <button data-go="two" data-i="m2"></button>
+    <button data-go="diff" data-i="mb"></button>
+    <button data-go="tour" data-i="mt"></button>
+    <button data-go="chal" data-i="mc"></button>
+  </div>
+  <button class="alt" id="gear" data-go="opts" data-ti="set">⚙</button>
+</div>
+
+<div id="diff" class="screen">
+  <h2 data-i="diffT"></h2>
+  <p data-i="diffP"></p>
+  <button data-d="easy" data-i="easy"></button>
+  <button data-d="normal" data-i="norm"></button>
+  <button data-d="hard" data-i="hard"></button>
+  <button class="alt" data-go="menu" data-i="back"></button>
+</div>
+
+<div id="opts" class="screen">
+  <h2 data-i="opts"></h2>
+  <button id="oTime"></button>
+  <button id="oGoals"></button>
+  <button id="oLang"></button>
+  <button class="alt" data-go="menu" data-i="back"></button>
+</div>
+
+<div id="lang" class="screen tall">
+  <h2 data-i="lang"></h2>
+  <div class="scroll"><div id="llist"></div></div>
+  <div class="brow"><button class="alt" data-go="opts" data-i="back"></button></div>
+</div>
+
+<div id="tsel" class="screen tall">
+  <h2 id="tsT"></h2>
+  <div id="tprev"></div>
+  <p id="shint"></p>
+  <div class="brow" id="rtog">
+    <button class="alt" id="rpick" data-i="pickT"></button>
+    <button class="alt" id="rrnd" data-i="rndT"></button>
+  </div>
+  <div class="scroll"><div id="sgrid"></div></div>
+  <div class="brow">
+    <button id="sgo" disabled data-i="sGo"></button>
+    <button class="alt" id="sback" data-i="back"></button>
+  </div>
+</div>
+
+<div id="end" class="screen">
+  <h1 id="endT"></h1>
+  <p id="endS"></p>
+  <button id="again" data-i="again"></button>
+  <button id="cont" style="display:none" data-i="viewB"></button>
+  <button class="alt" data-go="menu" data-i="main"></button>
+</div>
+
+<div id="tcfg" class="screen tall">
+  <h2 data-i="tourH"></h2>
+  <p id="csel"></p>
+  <div class="scroll" id="cbox">
+    <h3 data-i="cDiff"></h3>
+    <div class="chips" data-k="diff"></div>
+    <h3 data-i="cDur"></h3>
+    <div class="chips" data-k="time"></div>
+    <h3 data-i="cGoals"></h3>
+    <div class="chips" data-k="goals"></div>
+    <h3 data-i="cYour"></h3>
+    <div id="tgrid"></div>
+  </div>
+  <div class="brow">
+    <button id="cgo" disabled data-i="cGo"></button>
+    <button class="alt" data-go="menu" data-i="back"></button>
+  </div>
+</div>
+
+<div id="bracket" class="screen tall">
+  <h2 data-i="brT"></h2>
+  <p id="binfo"></p>
+  <div class="scroll" id="bbox"><div id="bk"></div></div>
+  <p id="bstat"></p>
+  <div class="brow">
+    <button id="bplay"></button>
+    <button class="alt" id="bnew" data-i="newT"></button>
+    <button class="alt" data-go="menu" data-i="menuS"></button>
+  </div>
+</div>
+
+<div id="chal" class="screen tall">
+  <h2 data-i="chalH"></h2>
+  <p id="cprog"></p>
+  <p id="cwarn" style="display:none" data-i="warn"></p>
+  <div class="scroll"><div id="clist"></div></div>
+  <div class="brow"><button class="alt" data-go="menu" data-i="back"></button></div>
+</div>
+
+<div id="chint" class="screen tall">
+  <h2 id="hn"></h2>
+  <div class="scroll"><p id="hd"></p><p id="hi"></p><p id="hm"></p></div>
+  <div class="brow">
+    <button id="hgo" data-i="go"></button>
+    <button class="alt" id="hback" data-i="backC"></button>
+  </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+
+let sdkPlaying=false;
+let sdkTransition=false;
+
+const sdkReady=(async()=>{
+  if(!window.PokiSDK)return;
+  try{await window.PokiSDK.init();}catch(e){}
+  try{window.PokiSDK.gameLoadingFinished();}catch(e){}
+})();
+
+function sdkStart(){
+  if(sdkPlaying)return;
+  sdkPlaying=true;
+  try{window.PokiSDK?.gameplayStart();}catch(e){}
+}
+
+function sdkStop(){
+  if(!sdkPlaying)return;
+  sdkPlaying=false;
+  try{window.PokiSDK?.gameplayStop();}catch(e){}
+}
+
+async function startNewGame(){
+  if(sdkTransition)return;
+  sdkTransition=true;
+  await sdkReady;
+  newGame();
+  sdkStart();
+  sdkTransition=false;
+}
+
+// =====================================================================
+//  IDIOMAS: para añadir uno nuevo, agrega una entrada en LANGS y un
+//  objeto en LNG, otro en CHT (15 desafíos) y otro en TNM (32 selecciones).
+//  Si falta una clave en un idioma se usa inglés y, si tampoco, español.
+// =====================================================================
+const LANGS=[['es','Español','es'],['en','English','gb'],['fr','Français','fr'],['de','Deutsch','de'],['pt','Português (Brasil)','br'],['it','Italiano','it'],['pl','Polski','pl'],['tr','Türkçe','tr']];
+const LKEY='chapix_lang_v1';
+let LANG='en';
+
+const LNG={
+es:{tag:'⚽ Cuatro chapas por equipo · Un balón · Mucha puntería',m2:'2 Jugadores',mb:'VS BOT',mt:'Torneo',mc:'Desafíos',set:'Ajustes',opts:'Opciones',back:'← Volver',dur:'Duración: {0} min',gls:'Goles para ganar: {0}',lang:'Idioma',menuB:'☰ Menú',rstB:'↻ Reiniciar',diffT:'Elige la dificultad',diffP:'Juegas contra el BOT',easy:'Fácil',norm:'Normal',hard:'Difícil',blue:'AZULES',red:'ROJOS',tBot:'Turno del BOT',tYou:'Tu turno · {0}',tOf:'Turno: {0}',two:'Dos jugadores',botL:'BOT: {0}',tourL:'Torneo · {0} · {1}',chL:'Desafío {0}',gol:'¡GOL de {0}!',gold:'¡GOL DE ORO!',goldT:'⚡ ORO',draw:'EMPATE',winT:'¡GANA {0}!',youW:'¡HAS GANADO!',botW:'GANA EL BOT',vict:'¡VICTORIA!',defe:'DERROTA',again:'Jugar otra partida',viewB:'Ver cuadro',main:'Menú principal',tourH:'TORNEO',pickSel:'Elige tu selección',yourSel:'Tu selección: {0}',cDiff:'Dificultad del BOT',cDur:'Duración del partido',cGoals:'Goles para ganar',cYour:'Tu selección',cGo:'COMENZAR TORNEO',brT:'CUADRO DEL TORNEO',play:'Jugar {0}',newT:'Nuevo torneo',menuS:'← Menú',r0:'Dieciseisavos',r1:'Octavos',r2:'Cuartos',r3:'Semifinales',r4:'Final',champ:'Campeón',tbd:'Por definir',champY:'🏆 ¡ERES EL CAMPEÓN!',elim:'Eliminado en {0} · Campeón: {1}',rInfo:'Ronda: {0} · Rival: {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'{0} gol',gN:'{0} goles',mn:'{0} min',chalH:'DESAFÍOS',prog:'{0}/{1} superados · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ Este navegador bloquea el guardado: el progreso no se conservará al cerrar el juego.',sDone:'Completado',sOpen:'Disponible',sLock:'Bloqueado',sMore:'Supera {0} más',lvM:'Media',lvD:'Difícil',lvE:'Épica',hDiff:'Dificultad',hBot:'BOT',hTime:'Tiempo',hPer:'por partido',mLine:'🥉 Superarlo · 🥈 {0} · 🥇 {1}',mD:'{0} goles de diferencia',mDt:'{0} goles de diferencia en total',mT:'{0} s restantes',mS:'máx. {0} lanzamientos',mL:'gol decisivo a ≤{0} s del final',go:'Comenzar',backC:'← Desafíos',xInit:'Marcador inicial {0}-{1}',xTo:'Partido a {0} goles',xSer:'{0} partidos seguidos · Si pierdes uno, fallas',xClock:'El reloj corre desde tu primer golpe',xLast:'El gol que te da la victoria debe llegar con 10 s o menos',xMiss:'Cada lanzamiento cuenta · Es fallo si tu chapa no toca el balón',xNum:'Tú tienes 2 chapas · El BOT tiene 4',xFull:'Sin límite de goles: dura los 2 minutos y termina si encajas',mOk:'¡PARTIDA {0}/{1} SUPERADA!',nextM:'Siguiente partida',chOk:'¡DESAFÍO SUPERADO!',chFail:'DESAFÍO FALLIDO',retry:'Reintentar',seeC:'Ver desafíos',shots:' · Lanzamientos {0} · Fallos {1}',noSave:' · ⚠ Progreso no guardado',sT2:'2 Jugadores: elige equipos',sTB:'VS BOT: elige equipos',sTC:'Desafío: elige equipos',p1:'Jugador 1',p2:'Jugador 2',rv:'Rival (BOT)',you:'Tú',pickT:'Elegir equipo',rndT:'Aleatorio',sGo:'Comenzar partido',h1:'Jugador 1: elige tu equipo',h2:'Jugador 2: elige tu equipo',hB:'Elige el equipo rival',hY:'Elige tu equipo'},
+en:{tag:'⚽ Four caps per team · One ball · Sharp aim',m2:'2 Players',mb:'VS BOT',mt:'Tournament',mc:'Challenges',set:'Settings',opts:'Options',back:'← Back',dur:'Duration: {0} min',gls:'Goals to win: {0}',lang:'Language',menuB:'☰ Menu',rstB:'↻ Restart',diffT:'Choose the difficulty',diffP:'You play against the BOT',easy:'Easy',norm:'Normal',hard:'Hard',blue:'BLUE',red:'RED',tBot:"BOT's turn",tYou:'Your turn · {0}',tOf:'Turn: {0}',two:'Two players',botL:'BOT: {0}',tourL:'Tournament · {0} · {1}',chL:'Challenge {0}',gol:'GOAL for {0}!',gold:'GOLDEN GOAL!',goldT:'⚡ GOLD',draw:'DRAW',winT:'{0} WINS!',youW:'YOU WON!',botW:'BOT WINS',vict:'VICTORY!',defe:'DEFEAT',again:'Play again',viewB:'View bracket',main:'Main menu',tourH:'TOURNAMENT',pickSel:'Choose your team',yourSel:'Your team: {0}',cDiff:'BOT difficulty',cDur:'Match duration',cGoals:'Goals to win',cYour:'Your team',cGo:'START TOURNAMENT',brT:'TOURNAMENT BRACKET',play:'Play {0}',newT:'New tournament',menuS:'← Menu',r0:'Round of 32',r1:'Round of 16',r2:'Quarter-finals',r3:'Semi-finals',r4:'Final',champ:'Champion',tbd:'To be decided',champY:'🏆 YOU ARE THE CHAMPION!',elim:'Eliminated in {0} · Champion: {1}',rInfo:'Round: {0} · Opponent: {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'{0} goal',gN:'{0} goals',mn:'{0} min',chalH:'CHALLENGES',prog:'{0}/{1} completed · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ This browser blocks saving: progress will not be kept when you close the game.',sDone:'Completed',sOpen:'Available',sLock:'Locked',sMore:'Complete {0} more',lvM:'Medium',lvD:'Hard',lvE:'Epic',hDiff:'Difficulty',hBot:'BOT',hTime:'Time',hPer:'per match',mLine:'🥉 Complete it · 🥈 {0} · 🥇 {1}',mD:'{0} goals difference',mDt:'{0} goals difference in total',mT:'{0} s left',mS:'max. {0} shots',mL:'decisive goal within {0} s of the end',go:'Start',backC:'← Challenges',xInit:'Starting score {0}-{1}',xTo:'First to {0} goals',xSer:'{0} matches in a row · Lose one and you fail',xClock:'The clock runs from your first shot',xLast:'The winning goal must come with 10 s or less left',xMiss:'Every shot counts · It is a miss if your cap does not touch the ball',xNum:'You have 2 caps · The BOT has 4',xFull:'No goal limit: it lasts the full 2 minutes and ends if you concede',mOk:'MATCH {0}/{1} CLEARED!',nextM:'Next match',chOk:'CHALLENGE COMPLETED!',chFail:'CHALLENGE FAILED',retry:'Retry',seeC:'View challenges',shots:' · Shots {0} · Misses {1}',noSave:' · ⚠ Progress not saved',sT2:'2 Players: choose teams',sTB:'VS BOT: choose teams',sTC:'Challenge: choose teams',p1:'Player 1',p2:'Player 2',rv:'Opponent (BOT)',you:'You',pickT:'Choose team',rndT:'Random',sGo:'Start match',h1:'Player 1: choose your team',h2:'Player 2: choose your team',hB:'Choose the rival team',hY:'Choose your team'},
+fr:{tag:'⚽ Quatre capsules par équipe · Un ballon · Beaucoup de précision',m2:'2 Joueurs',mb:'VS BOT',mt:'Tournoi',mc:'Défis',set:'Paramètres',opts:'Options',back:'← Retour',dur:'Durée : {0} min',gls:'Buts pour gagner : {0}',lang:'Langue',menuB:'☰ Menu',rstB:'↻ Recommencer',diffT:'Choisis la difficulté',diffP:'Tu joues contre le BOT',easy:'Facile',norm:'Normal',hard:'Difficile',blue:'BLEUS',red:'ROUGES',tBot:'Tour du BOT',tYou:'Ton tour · {0}',tOf:'Tour : {0}',two:'Deux joueurs',botL:'BOT : {0}',tourL:'Tournoi · {0} · {1}',chL:'Défi {0}',gol:'BUT de {0} !',gold:'BUT EN OR !',goldT:'⚡ OR',draw:'MATCH NUL',winT:'{0} GAGNE !',youW:'TU AS GAGNÉ !',botW:'LE BOT GAGNE',vict:'VICTOIRE !',defe:'DÉFAITE',again:'Rejouer',viewB:'Voir le tableau',main:'Menu principal',tourH:'TOURNOI',pickSel:'Choisis ton équipe',yourSel:'Ton équipe : {0}',cDiff:'Difficulté du BOT',cDur:'Durée du match',cGoals:'Buts pour gagner',cYour:'Ton équipe',cGo:'COMMENCER LE TOURNOI',brT:'TABLEAU DU TOURNOI',play:'Jouer : {0}',newT:'Nouveau tournoi',menuS:'← Menu',r0:'Seizièmes de finale',r1:'Huitièmes de finale',r2:'Quarts de finale',r3:'Demi-finales',r4:'Finale',champ:'Champion',tbd:'À déterminer',champY:'🏆 TU ES LE CHAMPION !',elim:'Éliminé : {0} · Champion : {1}',rInfo:'Tour : {0} · Adversaire : {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'{0} but',gN:'{0} buts',mn:'{0} min',chalH:'DÉFIS',prog:'{0}/{1} réussis · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:"⚠ Ce navigateur bloque la sauvegarde : la progression ne sera pas conservée à la fermeture du jeu.",sDone:'Terminé',sOpen:'Disponible',sLock:'Verrouillé',sMore:'Réussis-en {0} de plus',lvM:'Moyen',lvD:'Difficile',lvE:'Épique',hDiff:'Difficulté',hBot:'BOT',hTime:'Temps',hPer:'par match',mLine:'🥉 Le réussir · 🥈 {0} · 🥇 {1}',mD:"{0} buts d'écart",mDt:"{0} buts d'écart au total",mT:'{0} s restantes',mS:'max. {0} tirs',mL:'but décisif à ≤{0} s de la fin',go:'Commencer',backC:'← Défis',xInit:'Score initial {0}-{1}',xTo:'Premier à {0} buts',xSer:"{0} matchs d'affilée · Si tu en perds un, c'est raté",xClock:'Le chrono démarre à ton premier tir',xLast:'Le but de la victoire doit arriver à 10 s ou moins de la fin',xMiss:"Chaque tir compte · C'est un raté si ta capsule ne touche pas le ballon",xNum:'Tu as 2 capsules · Le BOT en a 4',xFull:'Pas de limite de buts : 2 minutes complètes, fin si tu encaisses',mOk:'MATCH {0}/{1} RÉUSSI !',nextM:'Match suivant',chOk:'DÉFI RÉUSSI !',chFail:'DÉFI RATÉ',retry:'Réessayer',seeC:'Voir les défis',shots:' · Tirs {0} · Ratés {1}',noSave:' · ⚠ Progression non sauvegardée',sT2:'2 Joueurs : choisis les équipes',sTB:'VS BOT : choisis les équipes',sTC:'Défi : choisis les équipes',p1:'Joueur 1',p2:'Joueur 2',rv:'Adversaire (BOT)',you:'Toi',pickT:"Choisir l'équipe",rndT:'Aléatoire',sGo:'Commencer le match',h1:'Joueur 1 : choisis ton équipe',h2:'Joueur 2 : choisis ton équipe',hB:"Choisis l'équipe adverse",hY:'Choisis ton équipe'},
+de:{tag:'⚽ Vier Kronkorken pro Team · Ein Ball · Viel Zielgenauigkeit',m2:'2 Spieler',mb:'VS BOT',mt:'Turnier',mc:'Herausforderungen',set:'Einstellungen',opts:'Optionen',back:'← Zurück',dur:'Dauer: {0} Min.',gls:'Tore zum Sieg: {0}',lang:'Sprache',menuB:'☰ Menü',rstB:'↻ Neustart',diffT:'Schwierigkeit wählen',diffP:'Du spielst gegen den BOT',easy:'Leicht',norm:'Normal',hard:'Schwer',blue:'BLAU',red:'ROT',tBot:'BOT ist dran',tYou:'Du bist dran · {0}',tOf:'Am Zug: {0}',two:'Zwei Spieler',botL:'BOT: {0}',tourL:'Turnier · {0} · {1}',chL:'Herausforderung {0}',gol:'TOR für {0}!',gold:'GOLDENES TOR!',goldT:'⚡ GOLD',draw:'UNENTSCHIEDEN',winT:'{0} GEWINNT!',youW:'DU HAST GEWONNEN!',botW:'BOT GEWINNT',vict:'SIEG!',defe:'NIEDERLAGE',again:'Nochmal spielen',viewB:'Turnierbaum ansehen',main:'Hauptmenü',tourH:'TURNIER',pickSel:'Wähle dein Team',yourSel:'Dein Team: {0}',cDiff:'BOT-Schwierigkeit',cDur:'Spieldauer',cGoals:'Tore zum Sieg',cYour:'Dein Team',cGo:'TURNIER STARTEN',brT:'TURNIERBAUM',play:'{0} spielen',newT:'Neues Turnier',menuS:'← Menü',r0:'Sechzehntelfinale',r1:'Achtelfinale',r2:'Viertelfinale',r3:'Halbfinale',r4:'Finale',champ:'Sieger',tbd:'Offen',champY:'🏆 DU BIST TURNIERSIEGER!',elim:'Ausgeschieden: {0} · Sieger: {1}',rInfo:'Runde: {0} · Gegner: {1}',bInfo:'{0} · BOT {1} · {2} Min. · {3}',g1:'{0} Tor',gN:'{0} Tore',mn:'{0} Min.',chalH:'HERAUSFORDERUNGEN',prog:'{0}/{1} geschafft · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ Dieser Browser blockiert das Speichern: Der Fortschritt geht beim Schließen verloren.',sDone:'Abgeschlossen',sOpen:'Verfügbar',sLock:'Gesperrt',sMore:'Schaffe {0} weitere',lvM:'Mittel',lvD:'Schwer',lvE:'Episch',hDiff:'Schwierigkeit',hBot:'BOT',hTime:'Zeit',hPer:'pro Spiel',mLine:'🥉 Schaffen · 🥈 {0} · 🥇 {1}',mD:'{0} Tore Unterschied',mDt:'{0} Tore Unterschied insgesamt',mT:'{0} s übrig',mS:'max. {0} Schüsse',mL:'Siegtor ≤{0} s vor Schluss',go:'Starten',backC:'← Herausforderungen',xInit:'Anfangsstand {0}:{1}',xTo:'Wer zuerst {0} Tore schießt',xSer:'{0} Spiele in Folge · Eine Niederlage = gescheitert',xClock:'Die Uhr läuft ab deinem ersten Schuss',xLast:'Das Siegtor muss in den letzten 10 s fallen',xMiss:'Jeder Schuss zählt · Fehlschuss, wenn dein Kronkorken den Ball nicht berührt',xNum:'Du hast 2 Kronkorken · Der BOT hat 4',xFull:'Kein Torlimit: volle 2 Minuten, Ende bei einem Gegentor',mOk:'SPIEL {0}/{1} GESCHAFFT!',nextM:'Nächstes Spiel',chOk:'HERAUSFORDERUNG GESCHAFFT!',chFail:'HERAUSFORDERUNG GESCHEITERT',retry:'Erneut versuchen',seeC:'Herausforderungen ansehen',shots:' · Schüsse {0} · Fehlschüsse {1}',noSave:' · ⚠ Fortschritt nicht gespeichert',sT2:'2 Spieler: Teams wählen',sTB:'VS BOT: Teams wählen',sTC:'Herausforderung: Teams wählen',p1:'Spieler 1',p2:'Spieler 2',rv:'Gegner (BOT)',you:'Du',pickT:'Team wählen',rndT:'Zufällig',sGo:'Spiel starten',h1:'Spieler 1: Wähle dein Team',h2:'Spieler 2: Wähle dein Team',hB:'Wähle das gegnerische Team',hY:'Wähle dein Team'},
+pt:{tag:'⚽ Quatro tampinhas por time · Uma bola · Muita pontaria',m2:'2 Jogadores',mb:'VS BOT',mt:'Torneio',mc:'Desafios',set:'Configurações',opts:'Opções',back:'← Voltar',dur:'Duração: {0} min',gls:'Gols para vencer: {0}',lang:'Idioma',menuB:'☰ Menu',rstB:'↻ Reiniciar',diffT:'Escolha a dificuldade',diffP:'Você joga contra o BOT',easy:'Fácil',norm:'Normal',hard:'Difícil',blue:'AZUIS',red:'VERMELHOS',tBot:'Vez do BOT',tYou:'Sua vez · {0}',tOf:'Vez: {0}',two:'Dois jogadores',botL:'BOT: {0}',tourL:'Torneio · {0} · {1}',chL:'Desafio {0}',gol:'GOL de {0}!',gold:'GOL DE OURO!',goldT:'⚡ OURO',draw:'EMPATE',winT:'{0} VENCE!',youW:'VOCÊ VENCEU!',botW:'O BOT VENCE',vict:'VITÓRIA!',defe:'DERROTA',again:'Jogar de novo',viewB:'Ver chaveamento',main:'Menu principal',tourH:'TORNEIO',pickSel:'Escolha sua seleção',yourSel:'Sua seleção: {0}',cDiff:'Dificuldade do BOT',cDur:'Duração da partida',cGoals:'Gols para vencer',cYour:'Sua seleção',cGo:'COMEÇAR TORNEIO',brT:'CHAVEAMENTO DO TORNEIO',play:'Jogar {0}',newT:'Novo torneio',menuS:'← Menu',r0:'16 avos de final',r1:'Oitavas de final',r2:'Quartas de final',r3:'Semifinais',r4:'Final',champ:'Campeão',tbd:'A definir',champY:'🏆 VOCÊ É O CAMPEÃO!',elim:'Eliminado: {0} · Campeão: {1}',rInfo:'Fase: {0} · Adversário: {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'{0} gol',gN:'{0} gols',mn:'{0} min',chalH:'DESAFIOS',prog:'{0}/{1} concluídos · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ Este navegador bloqueia o salvamento: o progresso não será mantido ao fechar o jogo.',sDone:'Concluído',sOpen:'Disponível',sLock:'Bloqueado',sMore:'Conclua mais {0}',lvM:'Média',lvD:'Difícil',lvE:'Épica',hDiff:'Dificuldade',hBot:'BOT',hTime:'Tempo',hPer:'por partida',mLine:'🥉 Concluir · 🥈 {0} · 🥇 {1}',mD:'{0} gols de diferença',mDt:'{0} gols de diferença no total',mT:'{0} s restantes',mS:'máx. {0} lançamentos',mL:'gol decisivo a ≤{0} s do fim',go:'Começar',backC:'← Desafios',xInit:'Placar inicial {0}-{1}',xTo:'Quem fizer {0} gols primeiro',xSer:'{0} partidas seguidas · Perdeu uma, falhou',xClock:'O relógio corre desde o seu primeiro lançamento',xLast:'O gol da vitória deve sair nos últimos 10 s',xMiss:'Todo lançamento conta · É falha se sua tampinha não tocar a bola',xNum:'Você tem 2 tampinhas · O BOT tem 4',xFull:'Sem limite de gols: dura os 2 minutos e acaba se você sofrer gol',mOk:'PARTIDA {0}/{1} CONCLUÍDA!',nextM:'Próxima partida',chOk:'DESAFIO CONCLUÍDO!',chFail:'DESAFIO FALHOU',retry:'Tentar de novo',seeC:'Ver desafios',shots:' · Lançamentos {0} · Falhas {1}',noSave:' · ⚠ Progresso não salvo',sT2:'2 Jogadores: escolha os times',sTB:'VS BOT: escolha os times',sTC:'Desafio: escolha os times',p1:'Jogador 1',p2:'Jogador 2',rv:'Adversário (BOT)',you:'Você',pickT:'Escolher time',rndT:'Aleatório',sGo:'Começar partida',h1:'Jogador 1: escolha seu time',h2:'Jogador 2: escolha seu time',hB:'Escolha o time adversário',hY:'Escolha seu time'},
+it:{tag:'⚽ Quattro tappi per squadra · Un pallone · Tanta mira',m2:'2 Giocatori',mb:'VS BOT',mt:'Torneo',mc:'Sfide',set:'Impostazioni',opts:'Opzioni',back:'← Indietro',dur:'Durata: {0} min',gls:'Gol per vincere: {0}',lang:'Lingua',menuB:'☰ Menu',rstB:'↻ Ricomincia',diffT:'Scegli la difficoltà',diffP:'Giochi contro il BOT',easy:'Facile',norm:'Normale',hard:'Difficile',blue:'BLU',red:'ROSSI',tBot:'Turno del BOT',tYou:'Il tuo turno · {0}',tOf:'Turno: {0}',two:'Due giocatori',botL:'BOT: {0}',tourL:'Torneo · {0} · {1}',chL:'Sfida {0}',gol:'GOL di {0}!',gold:'GOLDEN GOAL!',goldT:'⚡ ORO',draw:'PAREGGIO',winT:'VINCE {0}!',youW:'HAI VINTO!',botW:'VINCE IL BOT',vict:'VITTORIA!',defe:'SCONFITTA',again:'Gioca ancora',viewB:'Vedi tabellone',main:'Menu principale',tourH:'TORNEO',pickSel:'Scegli la tua nazionale',yourSel:'La tua nazionale: {0}',cDiff:'Difficoltà del BOT',cDur:'Durata della partita',cGoals:'Gol per vincere',cYour:'La tua nazionale',cGo:'INIZIA IL TORNEO',brT:'TABELLONE DEL TORNEO',play:'Gioca: {0}',newT:'Nuovo torneo',menuS:'← Menu',r0:'Sedicesimi di finale',r1:'Ottavi di finale',r2:'Quarti di finale',r3:'Semifinali',r4:'Finale',champ:'Campione',tbd:'Da definire',champY:'🏆 SEI IL CAMPIONE!',elim:'Eliminato: {0} · Campione: {1}',rInfo:'Turno: {0} · Avversario: {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'{0} gol',gN:'{0} gol',mn:'{0} min',chalH:'SFIDE',prog:'{0}/{1} superate · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ Questo browser blocca il salvataggio: i progressi non verranno conservati alla chiusura del gioco.',sDone:'Completata',sOpen:'Disponibile',sLock:'Bloccata',sMore:'Supera ancora {0}',lvM:'Media',lvD:'Difficile',lvE:'Epica',hDiff:'Difficoltà',hBot:'BOT',hTime:'Tempo',hPer:'a partita',mLine:'🥉 Superarla · 🥈 {0} · 🥇 {1}',mD:'{0} gol di scarto',mDt:'{0} gol di scarto in totale',mT:'{0} s rimanenti',mS:'max. {0} tiri',mL:'gol decisivo a ≤{0} s dalla fine',go:'Inizia',backC:'← Sfide',xInit:'Punteggio iniziale {0}-{1}',xTo:'Vince chi arriva a {0} gol',xSer:'{0} partite di fila · Se ne perdi una, fallisci',xClock:'Il tempo parte dal tuo primo tiro',xLast:'Il gol della vittoria deve arrivare negli ultimi 10 s',xMiss:'Ogni tiro conta · È un errore se il tuo tappo non tocca il pallone',xNum:'Hai 2 tappi · Il BOT ne ha 4',xFull:'Nessun limite di gol: dura 2 minuti e finisce se subisci',mOk:'PARTITA {0}/{1} SUPERATA!',nextM:'Partita successiva',chOk:'SFIDA SUPERATA!',chFail:'SFIDA FALLITA',retry:'Riprova',seeC:'Vedi sfide',shots:' · Tiri {0} · Errori {1}',noSave:' · ⚠ Progressi non salvati',sT2:'2 Giocatori: scegli le squadre',sTB:'VS BOT: scegli le squadre',sTC:'Sfida: scegli le squadre',p1:'Giocatore 1',p2:'Giocatore 2',rv:'Avversario (BOT)',you:'Tu',pickT:'Scegli squadra',rndT:'Casuale',sGo:'Inizia partita',h1:'Giocatore 1: scegli la tua squadra',h2:'Giocatore 2: scegli la tua squadra',hB:'Scegli la squadra avversaria',hY:'Scegli la tua squadra'},
+pl:{tag:'⚽ Cztery kapsle na drużynę · Jedna piłka · Dużo celności',m2:'2 Graczy',mb:'VS BOT',mt:'Turniej',mc:'Wyzwania',set:'Ustawienia',opts:'Opcje',back:'← Wstecz',dur:'Czas: {0} min',gls:'Gole do wygranej: {0}',lang:'Język',menuB:'☰ Menu',rstB:'↻ Restart',diffT:'Wybierz poziom trudności',diffP:'Grasz przeciwko BOT-owi',easy:'Łatwy',norm:'Normalny',hard:'Trudny',blue:'NIEBIESCY',red:'CZERWONI',tBot:'Ruch BOT-a',tYou:'Twój ruch · {0}',tOf:'Ruch: {0}',two:'Dwóch graczy',botL:'BOT: {0}',tourL:'Turniej · {0} · {1}',chL:'Wyzwanie {0}',gol:'GOL dla: {0}!',gold:'ZŁOTY GOL!',goldT:'⚡ ZŁOTO',draw:'REMIS',winT:'WYGRYWA {0}!',youW:'WYGRAŁEŚ!',botW:'WYGRYWA BOT',vict:'ZWYCIĘSTWO!',defe:'PORAŻKA',again:'Zagraj ponownie',viewB:'Zobacz drabinkę',main:'Menu główne',tourH:'TURNIEJ',pickSel:'Wybierz swoją reprezentację',yourSel:'Twoja reprezentacja: {0}',cDiff:'Poziom BOT-a',cDur:'Czas meczu',cGoals:'Gole do wygranej',cYour:'Twoja reprezentacja',cGo:'ROZPOCZNIJ TURNIEJ',brT:'DRABINKA TURNIEJU',play:'Zagraj: {0}',newT:'Nowy turniej',menuS:'← Menu',r0:'1/16 finału',r1:'1/8 finału',r2:'Ćwierćfinały',r3:'Półfinały',r4:'Finał',champ:'Mistrz',tbd:'Do ustalenia',champY:'🏆 JESTEŚ MISTRZEM!',elim:'Odpadasz: {0} · Mistrz: {1}',rInfo:'Runda: {0} · Rywal: {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'gole: {0}',gN:'gole: {0}',mn:'{0} min',chalH:'WYZWANIA',prog:'{0}/{1} ukończone · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ Ta przeglądarka blokuje zapis: postęp nie zostanie zachowany po zamknięciu gry.',sDone:'Ukończone',sOpen:'Dostępne',sLock:'Zablokowane',sMore:'Ukończ jeszcze {0}',lvM:'Średni',lvD:'Trudny',lvE:'Epicki',hDiff:'Poziom',hBot:'BOT',hTime:'Czas',hPer:'na mecz',mLine:'🥉 Ukończyć · 🥈 {0} · 🥇 {1}',mD:'różnica {0} goli',mDt:'łączna różnica {0} goli',mT:'pozostało {0} s',mS:'maks. {0} strzałów',mL:'decydujący gol ≤{0} s przed końcem',go:'Start',backC:'← Wyzwania',xInit:'Wynik początkowy {0}-{1}',xTo:'Gra do {0} goli',xSer:'Mecze z rzędu: {0} · Jedna porażka = koniec',xClock:'Zegar rusza od pierwszego strzału',xLast:'Gol zwycięstwa musi paść w ostatnich 10 s',xMiss:'Liczy się każdy strzał · Pudło, gdy kapsel nie dotknie piłki',xNum:'Masz 2 kapsle · BOT ma 4',xFull:'Bez limitu goli: trwa pełne 2 minuty, kończy się po straconym golu',mOk:'MECZ {0}/{1} ZALICZONY!',nextM:'Następny mecz',chOk:'WYZWANIE UKOŃCZONE!',chFail:'WYZWANIE NIEUDANE',retry:'Spróbuj ponownie',seeC:'Zobacz wyzwania',shots:' · Strzały {0} · Pudła {1}',noSave:' · ⚠ Postęp nie zapisany',sT2:'2 Graczy: wybierz drużyny',sTB:'VS BOT: wybierz drużyny',sTC:'Wyzwanie: wybierz drużyny',p1:'Gracz 1',p2:'Gracz 2',rv:'Rywal (BOT)',you:'Ty',pickT:'Wybierz drużynę',rndT:'Losowo',sGo:'Zacznij mecz',h1:'Gracz 1: wybierz drużynę',h2:'Gracz 2: wybierz drużynę',hB:'Wybierz drużynę rywala',hY:'Wybierz swoją drużynę'},
+tr:{tag:'⚽ Takım başına dört kapak · Tek top · Tam isabet',m2:'2 Oyuncu',mb:'VS BOT',mt:'Turnuva',mc:'Görevler',set:'Ayarlar',opts:'Seçenekler',back:'← Geri',dur:'Süre: {0} dk',gls:'Kazanmak için gol: {0}',lang:'Dil',menuB:'☰ Menü',rstB:'↻ Yeniden başlat',diffT:'Zorluğu seç',diffP:"BOT'a karşı oynuyorsun",easy:'Kolay',norm:'Normal',hard:'Zor',blue:'MAVİ',red:'KIRMIZI',tBot:"BOT'un sırası",tYou:'Sıra sende · {0}',tOf:'Sıra: {0}',two:'İki oyuncu',botL:'BOT: {0}',tourL:'Turnuva · {0} · {1}',chL:'Görev {0}',gol:'{0} GOL ATTI!',gold:'ALTIN GOL!',goldT:'⚡ ALTIN',draw:'BERABERLİK',winT:'{0} KAZANDI!',youW:'KAZANDIN!',botW:'BOT KAZANDI',vict:'ZAFER!',defe:'YENİLGİ',again:'Tekrar oyna',viewB:'Eşleşmeleri gör',main:'Ana menü',tourH:'TURNUVA',pickSel:'Milli takımını seç',yourSel:'Takımın: {0}',cDiff:'BOT zorluğu',cDur:'Maç süresi',cGoals:'Kazanmak için gol',cYour:'Takımın',cGo:'TURNUVAYI BAŞLAT',brT:'TURNUVA TABLOSU',play:'Oyna: {0}',newT:'Yeni turnuva',menuS:'← Menü',r0:'Son 32 turu',r1:'Son 16 turu',r2:'Çeyrek final',r3:'Yarı final',r4:'Final',champ:'Şampiyon',tbd:'Belirlenecek',champY:'🏆 ŞAMPİYONSUN!',elim:'Elendin: {0} · Şampiyon: {1}',rInfo:'Tur: {0} · Rakip: {1}',bInfo:'{0} · BOT {1} · {2} dk · {3}',g1:'{0} gol',gN:'{0} gol',mn:'{0} dk',chalH:'GÖREVLER',prog:'{0}/{1} tamamlandı · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ Bu tarayıcı kaydetmeyi engelliyor: oyunu kapatınca ilerleme saklanmaz.',sDone:'Tamamlandı',sOpen:'Açık',sLock:'Kilitli',sMore:'{0} görev daha tamamla',lvM:'Orta',lvD:'Zor',lvE:'Efsanevi',hDiff:'Zorluk',hBot:'BOT',hTime:'Süre',hPer:'maç başına',mLine:'🥉 Tamamlamak · 🥈 {0} · 🥇 {1}',mD:'{0} gol fark',mDt:'toplam {0} gol fark',mT:'{0} sn kalan',mS:'en fazla {0} atış',mL:'karar golü bitişe ≤{0} sn kala',go:'Başla',backC:'← Görevler',xInit:'Başlangıç skoru {0}-{1}',xTo:'{0} gole kadar oynanır',xSer:'Üst üste {0} maç · Birini kaybedersen görev başarısız',xClock:'Süre ilk atışından itibaren işler',xLast:'Galibiyet golü son 10 saniyede gelmeli',xMiss:'Her atış sayılır · Kapağın topa değmezse ıska sayılır',xNum:"Senin 2 kapağın var · BOT'un 4",xFull:'Gol sınırı yok: 2 dakika sürer, gol yersen biter',mOk:'{0}/{1}. MAÇ TAMAMLANDI!',nextM:'Sonraki maç',chOk:'GÖREV TAMAMLANDI!',chFail:'GÖREV BAŞARISIZ',retry:'Tekrar dene',seeC:'Görevleri gör',shots:' · Atış {0} · Iska {1}',noSave:' · ⚠ İlerleme kaydedilmedi',sT2:'2 Oyuncu: takımları seç',sTB:'VS BOT: takımları seç',sTC:'Görev: takımları seç',p1:'Oyuncu 1',p2:'Oyuncu 2',rv:'Rakip (BOT)',you:'Sen',pickT:'Takım seç',rndT:'Rastgele',sGo:'Maçı başlat',h1:'Oyuncu 1: takımını seç',h2:'Oyuncu 2: takımını seç',hB:'Rakip takımı seç',hY:'Takımını seç'}
+};
+
+// Desafíos: [nombre, descripción] en el orden de la tabla CHS
+const CHT={
+es:[['REMONTADA','Gana un partido empezando perdiendo 0-2.'],['GOL EXPRÉS','Marca 3 goles en 60 segundos.'],['IMBATIBLE','Gana un partido sin recibir ningún gol.'],['ÚLTIMO SUSPIRO','Marca el gol de la victoria durante los últimos 10 segundos.'],['SUPERIORIDAD','Gana por una diferencia de 3 goles o más.'],['CONTRA EL CAMPEÓN','Derrota al BOT en dificultad difícil.'],['PARTIDO PERFECTO','Gana sin fallar ningún lanzamiento: la chapa que lances debe tocar el balón.'],['DESVENTAJA NUMÉRICA','Juega con 2 chapas contra 4 y consigue la victoria.'],['A CONTRARRELOJ','Marca 2 goles en 30 segundos.'],['LA REMONTADA ÉPICA','Gana un partido después de ir perdiendo 0-3.'],['SIN MARGEN DE ERROR','Gana al BOT difícil sin recibir ningún gol.'],['DOBLE O NADA','Gana dos partidos consecutivos contra el BOT.'],['REY DEL CAMPO','Gana tres partidos consecutivos con dificultad creciente.'],['PORTERÍA INVICTA','Completa un partido entero (2 minutos) sin encajar goles.'],['DOMINIO TOTAL','Gana por 3 goles o más de ventaja contra el BOT difícil.']],
+en:[['COMEBACK','Win a match after starting 0-2 down.'],['EXPRESS GOALS','Score 3 goals in 60 seconds.'],['UNBEATEN','Win a match without conceding a goal.'],['LAST BREATH','Score the winning goal in the last 10 seconds.'],['SUPERIORITY','Win by a margin of 3 goals or more.'],['VS THE CHAMPION','Beat the BOT on hard difficulty.'],['PERFECT MATCH','Win without missing a shot: the cap you flick must touch the ball.'],['OUTNUMBERED','Play with 2 caps against 4 and win.'],['RACE AGAINST TIME','Score 2 goals in 30 seconds.'],['THE EPIC COMEBACK','Win a match after being 0-3 down.'],['NO ROOM FOR ERROR','Beat the hard BOT without conceding a goal.'],['DOUBLE OR NOTHING','Win two matches in a row against the BOT.'],['KING OF THE PITCH','Win three matches in a row with rising difficulty.'],['CLEAN SHEET','Play a full match (2 minutes) without conceding.'],['TOTAL DOMINATION','Win by 3 goals or more against the hard BOT.']],
+fr:[['REMONTADA','Gagne un match en étant mené 0-2 au départ.'],['BUTS EXPRESS','Marque 3 buts en 60 secondes.'],['INVAINCU','Gagne un match sans encaisser de but.'],['DERNIER SOUFFLE','Marque le but de la victoire dans les 10 dernières secondes.'],['SUPÉRIORITÉ',"Gagne avec 3 buts d'écart ou plus."],['CONTRE LE CHAMPION','Bats le BOT en difficulté difficile.'],['MATCH PARFAIT','Gagne sans rater aucun tir : la capsule lancée doit toucher le ballon.'],['EN INFÉRIORITÉ','Joue à 2 capsules contre 4 et gagne.'],['CONTRE LA MONTRE','Marque 2 buts en 30 secondes.'],['LA REMONTADA ÉPIQUE','Gagne un match après avoir été mené 0-3.'],["PAS DE DROIT À L'ERREUR",'Bats le BOT difficile sans encaisser de but.'],['QUITTE OU DOUBLE',"Gagne deux matchs d'affilée contre le BOT."],['ROI DU TERRAIN',"Gagne trois matchs d'affilée avec une difficulté croissante."],['CAGE INVIOLÉE','Joue un match entier (2 minutes) sans encaisser de but.'],['DOMINATION TOTALE',"Gagne avec 3 buts d'écart ou plus contre le BOT difficile."]],
+de:[['AUFHOLJAGD','Gewinne ein Spiel, obwohl du 0:2 zurückliegst.'],['BLITZTORE','Erziele 3 Tore in 60 Sekunden.'],['UNBEZWINGBAR','Gewinne ein Spiel ohne Gegentor.'],['LETZTER ATEMZUG','Erziele das Siegtor in den letzten 10 Sekunden.'],['ÜBERLEGENHEIT','Gewinne mit 3 oder mehr Toren Unterschied.'],['GEGEN DEN MEISTER','Besiege den BOT auf Schwer.'],['PERFEKTES SPIEL','Gewinne ohne Fehlschuss: Der geschnippte Kronkorken muss den Ball berühren.'],['IN UNTERZAHL','Spiele mit 2 Kronkorken gegen 4 und gewinne.'],['GEGEN DIE UHR','Erziele 2 Tore in 30 Sekunden.'],['DIE EPISCHE AUFHOLJAGD','Gewinne ein Spiel nach einem 0:3-Rückstand.'],['KEIN SPIELRAUM FÜR FEHLER','Besiege den schweren BOT ohne Gegentor.'],['DOPPELT ODER NICHTS','Gewinne zwei Spiele in Folge gegen den BOT.'],['KÖNIG DES PLATZES','Gewinne drei Spiele in Folge mit steigender Schwierigkeit.'],['WEISSE WESTE','Spiele ein ganzes Spiel (2 Minuten) ohne Gegentor.'],['TOTALE DOMINANZ','Gewinne mit 3 oder mehr Toren Unterschied gegen den schweren BOT.']],
+pt:[['VIRADA','Vença uma partida começando perdendo por 0-2.'],['GOLS RELÂMPAGO','Faça 3 gols em 60 segundos.'],['INVICTO','Vença uma partida sem sofrer nenhum gol.'],['ÚLTIMO SUSPIRO','Faça o gol da vitória nos últimos 10 segundos.'],['SUPERIORIDADE','Vença por uma diferença de 3 gols ou mais.'],['CONTRA O CAMPEÃO','Derrote o BOT na dificuldade difícil.'],['PARTIDA PERFEITA','Vença sem errar nenhum lançamento: a tampinha lançada deve tocar a bola.'],['DESVANTAGEM NUMÉRICA','Jogue com 2 tampinhas contra 4 e vença.'],['CONTRA O RELÓGIO','Faça 2 gols em 30 segundos.'],['A VIRADA ÉPICA','Vença uma partida depois de estar perdendo por 0-3.'],['SEM MARGEM PARA ERRO','Vença o BOT difícil sem sofrer nenhum gol.'],['DOBRO OU NADA','Vença duas partidas seguidas contra o BOT.'],['REI DO CAMPO','Vença três partidas seguidas com dificuldade crescente.'],['GOL INTOCÁVEL','Complete uma partida inteira (2 minutos) sem sofrer gols.'],['DOMÍNIO TOTAL','Vença por 3 gols ou mais de diferença contra o BOT difícil.']],
+it:[['RIMONTA','Vinci una partita partendo sotto 0-2.'],['GOL LAMPO','Segna 3 gol in 60 secondi.'],['IMBATTIBILE','Vinci una partita senza subire gol.'],['ULTIMO RESPIRO','Segna il gol della vittoria negli ultimi 10 secondi.'],['SUPERIORITÀ','Vinci con uno scarto di 3 gol o più.'],['CONTRO IL CAMPIONE','Sconfiggi il BOT in difficoltà difficile.'],['PARTITA PERFETTA','Vinci senza sbagliare nessun tiro: il tappo lanciato deve toccare il pallone.'],['INFERIORITÀ NUMERICA','Gioca con 2 tappi contro 4 e vinci.'],['CONTRO IL TEMPO','Segna 2 gol in 30 secondi.'],['LA RIMONTA EPICA','Vinci una partita dopo essere stato sotto 0-3.'],["NESSUN MARGINE D'ERRORE",'Sconfiggi il BOT difficile senza subire gol.'],['DOPPIO O NIENTE','Vinci due partite di fila contro il BOT.'],['RE DEL CAMPO','Vinci tre partite di fila con difficoltà crescente.'],['PORTA INVIOLATA','Gioca una partita intera (2 minuti) senza subire gol.'],['DOMINIO TOTALE','Vinci con 3 gol o più di scarto contro il BOT difficile.']],
+pl:[['ODRABIANIE STRAT','Wygraj mecz, zaczynając od wyniku 0-2.'],['EKSPRESOWE GOLE','Strzel 3 gole w 60 sekund.'],['NIEPOKONANY','Wygraj mecz, nie tracąc żadnego gola.'],['OSTATNI ODDECH','Strzel zwycięskiego gola w ostatnich 10 sekundach.'],['PRZEWAGA','Wygraj różnicą co najmniej 3 goli.'],['PRZECIW MISTRZOWI','Pokonaj BOT-a na poziomie trudnym.'],['IDEALNY MECZ','Wygraj bez pudła: wystrzelony kapsel musi dotknąć piłki.'],['GRA W OSŁABIENIU','Zagraj 2 kapslami przeciwko 4 i wygraj.'],['WYŚCIG Z CZASEM','Strzel 2 gole w 30 sekund.'],['EPICKI POWRÓT','Wygraj mecz po przegrywaniu 0-3.'],['BEZ MARGINESU BŁĘDU','Pokonaj trudnego BOT-a, nie tracąc gola.'],['VA BANQUE','Wygraj dwa mecze z rzędu z BOT-em.'],['KRÓL BOISKA','Wygraj trzy mecze z rzędu na rosnącym poziomie trudności.'],['CZYSTE KONTO','Rozegraj cały mecz (2 minuty), nie tracąc gola.'],['TOTALNA DOMINACJA','Wygraj różnicą co najmniej 3 goli z trudnym BOT-em.']],
+tr:[['GERİ DÖNÜŞ','0-2 geride başlayıp maçı kazan.'],['EKSPRES GOLLER','60 saniyede 3 gol at.'],['YENİLMEZ','Gol yemeden bir maç kazan.'],['SON NEFES','Son 10 saniyede galibiyet golünü at.'],['ÜSTÜNLÜK','3 veya daha fazla gol farkla kazan.'],['ŞAMPİYONA KARŞI',"Zor seviyede BOT'u yen."],['MÜKEMMEL MAÇ','Hiç ıskalamadan kazan: fırlattığın kapak topa değmeli.'],['SAYISAL DEZAVANTAJ','2 kapakla 4 kapağa karşı oyna ve kazan.'],['ZAMANA KARŞI','30 saniyede 2 gol at.'],['EFSANEVİ GERİ DÖNÜŞ','0-3 geriye düştükten sonra maçı kazan.'],['HATAYA YER YOK',"Zor BOT'u gol yemeden yen."],['YA HEP YA HİÇ',"BOT'a karşı üst üste iki maç kazan."],['SAHANIN KRALI','Artan zorlukta üst üste üç maç kazan.'],['KALESİNİ KAPAT','Gol yemeden tam bir maçı (2 dakika) tamamla.'],['TAM HAKİMİYET',"Zor BOT'a karşı 3 veya daha fazla gol farkla kazan."]]
+};
+
+// Nombres de las 32 selecciones (mismo orden que TEAMS)
+const TNM={
+es:['España','Argentina','Francia','Inglaterra','Portugal','Brasil','Marruecos','Bélgica','Países Bajos','México','Colombia','Suiza','Alemania','Croacia','Italia','Estados Unidos','Japón','Senegal','Noruega','Uruguay','Dinamarca','Austria','Irán','Ecuador','Egipto','Australia','Canadá','Argelia','Costa de Marfil','Nigeria','Turquía','Corea del Sur'],
+en:['Spain','Argentina','France','England','Portugal','Brazil','Morocco','Belgium','Netherlands','Mexico','Colombia','Switzerland','Germany','Croatia','Italy','United States','Japan','Senegal','Norway','Uruguay','Denmark','Austria','Iran','Ecuador','Egypt','Australia','Canada','Algeria','Ivory Coast','Nigeria','Turkey','South Korea'],
+fr:['Espagne','Argentine','France','Angleterre','Portugal','Brésil','Maroc','Belgique','Pays-Bas','Mexique','Colombie','Suisse','Allemagne','Croatie','Italie','États-Unis','Japon','Sénégal','Norvège','Uruguay','Danemark','Autriche','Iran','Équateur','Égypte','Australie','Canada','Algérie',"Côte d'Ivoire",'Nigeria','Turquie','Corée du Sud'],
+de:['Spanien','Argentinien','Frankreich','England','Portugal','Brasilien','Marokko','Belgien','Niederlande','Mexiko','Kolumbien','Schweiz','Deutschland','Kroatien','Italien','USA','Japan','Senegal','Norwegen','Uruguay','Dänemark','Österreich','Iran','Ecuador','Ägypten','Australien','Kanada','Algerien','Elfenbeinküste','Nigeria','Türkei','Südkorea'],
+pt:['Espanha','Argentina','França','Inglaterra','Portugal','Brasil','Marrocos','Bélgica','Países Baixos','México','Colômbia','Suíça','Alemanha','Croácia','Itália','Estados Unidos','Japão','Senegal','Noruega','Uruguai','Dinamarca','Áustria','Irã','Equador','Egito','Austrália','Canadá','Argélia','Costa do Marfim','Nigéria','Turquia','Coreia do Sul'],
+it:['Spagna','Argentina','Francia','Inghilterra','Portogallo','Brasile','Marocco','Belgio','Paesi Bassi','Messico','Colombia','Svizzera','Germania','Croazia','Italia','Stati Uniti','Giappone','Senegal','Norvegia','Uruguay','Danimarca','Austria','Iran','Ecuador','Egitto','Australia','Canada','Algeria',"Costa d'Avorio",'Nigeria','Turchia','Corea del Sud'],
+pl:['Hiszpania','Argentyna','Francja','Anglia','Portugalia','Brazylia','Maroko','Belgia','Holandia','Meksyk','Kolumbia','Szwajcaria','Niemcy','Chorwacja','Włochy','Stany Zjednoczone','Japonia','Senegal','Norwegia','Urugwaj','Dania','Austria','Iran','Ekwador','Egipt','Australia','Kanada','Algieria','Wybrzeże Kości Słoniowej','Nigeria','Turcja','Korea Południowa'],
+tr:['İspanya','Arjantin','Fransa','İngiltere','Portekiz','Brezilya','Fas','Belçika','Hollanda','Meksika','Kolombiya','İsviçre','Almanya','Hırvatistan','İtalya','ABD','Japonya','Senegal','Norveç','Uruguay','Danimarka','Avusturya','İran','Ekvador','Mısır','Avustralya','Kanada','Cezayir','Fildişi Sahili','Nijerya','Türkiye','Güney Kore']
+};
+
+const tt=(k,...a)=>{
+  const s=(LNG[LANG]&&LNG[LANG][k])??LNG.en[k]??LNG.es[k]??k;
+  return s.replace(/\{(\d)\}/g,(m,i)=>a[i]??'');
+};
+const dn=k=>tt(k==='normal'?'norm':k);
+const rn=r=>tt('r'+r);
+const goalsTxt=g=>tt(g>1?'gN':'g1',g);
+const tname=i=>(TNM[LANG]||TNM.en)[i];
+const chT=i=>(CHT[LANG]||CHT.en)[i];
+
+function detectLang(){
+  let s=null;
+  try{s=localStorage.getItem(LKEY);}catch(e){}
+  if(s&&LNG[s])return s;
+  const ls=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'en'];
+  for(const x of ls){const p=String(x).toLowerCase().slice(0,2);if(LNG[p])return p;}
+  return 'en';
+}
+
+const FW=1050,FH=680,GD=50,M=24,CW=FW+2*GD,CH_=FH+2*M,CY=FH/2,GY1=CY-95,GY2=CY+95;
+const RC=24,RB=13,MAXD=160,SPD=10.5,MAXB=2300,MAXC=2000,DT=1/240;
+let GAME_TIME=120,WIN_GOALS=3;
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage');
+const $=id=>document.getElementById(id);
+let caps,ball,all,posts,turn='blue',state='menu',score={blue:0,red:0},time=GAME_TIME,started=false,drag=null,stopT=0,goalT=0,goalMsg='',moveT=0,acc=0,last=0;
+let mode='two',diff='normal',bot=null,botT=0;
+
+// ---------- Detección de teléfono móvil + orientación horizontal ----------
+const UA=navigator.userAgent||'',UAD=navigator.userAgentData;
+const TABLET_UA=/iPad|Tablet|PlayBook|Silk|Kindle/i.test(UA)||(/Android/i.test(UA)&&!/Mobile/i.test(UA));
+const PHONE_UA=/iPhone|iPod|Windows Phone|IEMobile|BlackBerry|Opera Mini/i.test(UA)||(/Android/i.test(UA)&&/Mobile/i.test(UA));
+const IS_PHONE=!TABLET_UA&&(PHONE_UA||(!!UAD&&UAD.mobile===true))&&(navigator.maxTouchPoints||0)>0;
+const landMQ=window.matchMedia?window.matchMedia('(orientation: landscape)'):null;
+function layout(){
+  const land=landMQ?landMQ.matches:window.innerWidth>window.innerHeight;
+  document.documentElement.classList.toggle('phone-land',IS_PHONE&&land);
+}
+
+// Equipos y colores (únicos y compartidos por Torneo, 2 Jugadores, VS BOT y Desafíos)
+const TEAMS=[
+['España','es','#E63946'],['Argentina','ar','#56B4E9'],['Francia','fr','#2643A3'],['Inglaterra','eng','#F2F2F2'],
+['Portugal','pt','#16A34A'],['Brasil','br','#FFD60A'],['Marruecos','ma','#7B2CBF'],['Bélgica','be','#252525'],
+['Países Bajos','nl','#FF7F11'],['México','mx','#008C72'],['Colombia','co','#E84393'],['Suiza','ch','#800F2F'],
+['Alemania','de','#6C757D'],['Croacia','hr','#00A6A6'],['Italia','it','#A3E635'],['Estados Unidos','us','#FF4D6D'],
+['Japón','jp','#F7B2D0'],['Senegal','sn','#B7E4C7'],['Noruega','no','#7F5539'],['Uruguay','uy','#00B4D8'],
+['Dinamarca','dk','#9D4EDD'],['Austria','at','#B08968'],['Irán','ir','#C77DFF'],['Ecuador','ec','#003049'],
+['Egipto','eg','#8D99AE'],['Australia','au','#F72585'],['Canadá','ca','#90BE6D'],['Argelia','dz','#5F0F40'],
+['Costa de Marfil','ci','#FFB703'],['Nigeria','ng','#386641'],['Turquía','tr','#FF006E'],['Corea del Sur','kr','#0077B6']
+];
+
+const TC={blue:null,red:null},TN={blue:'',red:''},TF={blue:'',red:''};
+let T=null,CFG={sel:-1,diff:'normal',time:120,goals:3},curOpp=0,golden=false,goldT=0;
+const SKEY='chapix_torneo_v1';
+let SEL={a:-1,b:-1,rnd:true,act:0,kind:'two'}; // selección de equipos de 2 Jugadores / VS BOT / Desafíos
+// Estado del modo Desafíos
+let CH=null,chIdx=0,chLs=null,shooter=null,touched=false,PROG={},storeOK=true;
+const CKEY='chapix_desafios_v1';
+
+const fl=c=>c==='eng'?'\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}':[...c.toUpperCase()].map(x=>String.fromCodePoint(127397+x.charCodeAt(0))).join('');
+
+function shade(h,k){
+  const n=parseInt(h.slice(1),16),t=k<0?0:255,a=Math.abs(k);
+  return '#'+[n>>16,(n>>8)&255,n&255].map(v=>Math.round(v+(t-v)*a).toString(16).padStart(2,'0')).join('');
+}
+
+function lum(h){
+  const n=parseInt(h.slice(1),16);
+  return(.299*(n>>16)+.587*((n>>8)&255)+.114*(n&255))/255;
+}
+
+const isBot=()=>mode==='bot'||mode==='tour'||mode==='chal';
+const matchTime=()=>mode==='chal'&&CH?CH.def.time:mode==='tour'&&T?T.time:GAME_TIME;
+const winGoals=()=>mode==='tour'&&T?T.goals:WIN_GOALS;
+const winOf=s=>{
+  if(mode==='chal'&&CH){const w=CH.def.win;return Array.isArray(w)?w[s==='blue'?0:1]:w;}
+  return winGoals();
+};
+const nm=s=>TC[s]?TN[s]:tt(s==='blue'?'blue':'red');
+const upName=i=>tname(i).toLocaleUpperCase(LANG);
+
+const mk=(x,y,r,im,t)=>({x,y,r,im,vx:0,vy:0,t});
+posts=[[0,GY1],[0,GY2],[FW,GY1],[FW,GY2]].map(p=>mk(p[0],p[1],6,0,'post'));
+const FORM=[[360,0],[245,-105],[245,105],[130,0]];
+
+function placePieces(){
+  caps=[];
+  const chal=mode==='chal'&&CH,bl=chal&&CH.def.bl||[0,1,2,3],rl=chal&&CH.def.rl||[0,1,2,3];
+  FORM.forEach(([x,dy],i)=>{
+    if(bl.includes(i))caps.push(mk(x,CY+dy,RC,.25,'blue'));
+    if(rl.includes(i))caps.push(mk(FW-x,CY+dy,RC,.25,'red'));
+  });
+  ball=mk(FW/2,CY,RB,1,'ball');
+  all=caps.concat([ball]);
+}
+
+function friction(p,dt){
+  const isB=p.t==='ball',k=isB?1.3:2.2,c=isB?30:60;
+  let sp=Math.hypot(p.vx,p.vy);
+  if(sp===0)return;
+  let ns=sp*Math.exp(-k*dt)-c*dt;
+  if(ns<8){p.vx=p.vy=0;return;}
+  const f=ns/sp;p.vx*=f;p.vy*=f;
+  const mx=isB?MAXB:MAXC;
+  if(ns>mx){p.vx*=mx/ns;p.vy*=mx/ns;}
+}
+
+function collide(a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,rr=a.r+b.r,d2=dx*dx+dy*dy;
+  if(d2>=rr*rr)return;
+  let d=Math.sqrt(d2),nx,ny;
+  if(d<1e-6){nx=1;ny=0;d=0;}else{nx=dx/d;ny=dy/d;}
+  const sum=a.im+b.im;
+  if(sum===0)return;
+  const ov=rr-d;
+  a.x-=nx*ov*a.im/sum;a.y-=ny*ov*a.im/sum;
+  b.x+=nx*ov*b.im/sum;b.y+=ny*ov*b.im/sum;
+  const vn=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
+  if(vn<0){
+    let e=(a.t==='post'||b.t==='post')?.6:(a.t==='ball'||b.t==='ball')?.85:.8;
+    if(-vn<25)e=0;
+    const j=-(1+e)*vn/sum;
+    a.vx-=j*a.im*nx;a.vy-=j*a.im*ny;
+    b.vx+=j*b.im*nx;b.vy+=j*b.im*ny;
+  }
+}
+
+function wallsCap(p){
+  const r=p.r,E=.6;
+  if(p.x<r){p.x=r;p.vx=Math.abs(p.vx)*E;}
+  if(p.x>FW-r){p.x=FW-r;p.vx=-Math.abs(p.vx)*E;}
+  if(p.y<r){p.y=r;p.vy=Math.abs(p.vy)*E;}
+  if(p.y>FH-r){p.y=FH-r;p.vy=-Math.abs(p.vy)*E;}
+}
+
+function wallsBall(b){
+  const r=b.r,E=.8;
+  if(b.x<0||b.x>FW){
+    if(b.y<GY1+r){b.y=GY1+r;b.vy=Math.abs(b.vy)*E;}
+    if(b.y>GY2-r){b.y=GY2-r;b.vy=-Math.abs(b.vy)*E;}
+    if(b.x<-GD+r){b.x=-GD+r;b.vx=Math.abs(b.vx)*E;}
+    if(b.x>FW+GD-r){b.x=FW+GD-r;b.vx=-Math.abs(b.vx)*E;}
+  }else{
+    if(b.y<r){b.y=r;b.vy=Math.abs(b.vy)*E;}
+    if(b.y>FH-r){b.y=FH-r;b.vy=-Math.abs(b.vy)*E;}
+    const mouth=b.y>GY1&&b.y<GY2;
+    if(!mouth){
+      if(b.x<r){b.x=r;b.vx=Math.abs(b.vx)*E;}
+      if(b.x>FW-r){b.x=FW-r;b.vx=-Math.abs(b.vx)*E;}
+    }
+  }
+}
+
+function step(dt){
+  for(const p of all){p.x+=p.vx*dt;p.y+=p.vy*dt;friction(p,dt);}
+  if(ball.x<-ball.r&&ball.y>GY1&&ball.y<GY2)return 'red';
+  if(ball.x>FW+ball.r&&ball.y>GY1&&ball.y<GY2)return 'blue';
+  for(let it=0;it<3;it++){
+    for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++)collide(all[i],all[j]);
+    for(const po of posts)for(const p of all)collide(po,p);
+    for(const p of caps)wallsCap(p);
+    wallsBall(ball);
+  }
+  return null;
+}
+
+function allStopped(){return all.every(p=>p.vx===0&&p.vy===0);}
+
+function launch(c,px,py){
+  const len=Math.hypot(px,py),l=Math.min(len,MAXD);
+  c.vx=-px/len*l*SPD;c.vy=-py/len*l*SPD;
+  started=true;state='moving';stopT=0;moveT=0;acc=0;
+  // Desafíos: se registra el lanzamiento del jugador (no altera la física)
+  if(mode==='chal'&&CH&&c.t==='blue'){CH.shots++;shooter=c;touched=false;}else shooter=null;
+}
+
+const DIFF={
+  easy:{sa:.075,sp:.2,pb:.3,k:6},
+  normal:{sa:.035,sp:.09,pb:.6,k:3},
+  hard:{sa:.012,sp:.035,pb:.85,k:2}
+};
+
+const gauss=()=>(Math.random()+Math.random()+Math.random()-1.5)*2;
+
+function segDist(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay;
+  let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);
+  t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-ax-t*dx,py-ay-t*dy);
+}
+
+function evalS(g,moved){
+  if(g==='red')return 1e5;
+  if(g==='blue')return -1e5;
+  let s=-Math.hypot(ball.x,ball.y-CY)+.4*Math.hypot(ball.x-FW,ball.y-CY);
+  if(!moved&&ball.x<FW*.5)s-=250;
+  if(ball.x>FW*.45){
+    let m=1e9;
+    for(const c of caps)if(c.t==='red')m=Math.min(m,segDist(c.x,c.y,ball.x,ball.y,FW,CY));
+    s-=m*.7;
+  }
+  return s;
+}
+
+function think(){
+  const P=DIFF[diff],snap=all.map(p=>[p.x,p.y]),bx=ball.x,by=ball.y,cands=[];
+  const restore=()=>all.forEach((p,i)=>{p.x=snap[i][0];p.y=snap[i][1];p.vx=p.vy=0;});
+  const targets=[];
+  for(const ty of [CY,GY1+28,GY2-28])targets.push([0,ty],[0,-ty],[0,2*FH-ty]);
+  const gl=Math.hypot(bx-FW,by-CY)||1,tdx=FW+(bx-FW)/gl*140,tdy=CY+(by-CY)/gl*140;
+  for(const c of caps){
+    if(c.t!=='red')continue;
+    const dirs=[];
+    for(const [tx,ty] of targets){
+      let dx=tx-bx,dy=ty-by;
+      const d=Math.hypot(dx,dy)||1;
+      dx/=d;dy/=d;
+      dirs.push([Math.atan2(by-dy*(RC+RB)-c.y,bx-dx*(RC+RB)-c.x),[.5,.75,1]]);
+    }
+    const ab=Math.atan2(by-c.y,bx-c.x);
+    dirs.push([ab-.1,[.6,1]],[ab,[.6,1]],[ab+.1,[.6,1]]);
+    dirs.push([Math.atan2(tdy-c.y,tdx-c.x),[.15,.25,.4]]);
+    for(const [ang,fs] of dirs)for(const f of fs){
+      const l=f*MAXD;restore();
+      c.vx=Math.cos(ang)*l*SPD;c.vy=Math.sin(ang)*l*SPD;
+      let g=null,moved=false;
+      for(let i=0;i<600&&!g;i++){
+        g=step(DT);
+        if(ball.vx||ball.vy)moved=true;
+        if(i%30===29&&allStopped())break;
+      }
+      cands.push({c,ang,l,s:evalS(g,moved)+Math.random()*15});
+    }
+  }
+  restore();
+  cands.sort((a,b)=>b.s-a.s);
+  const idx=Math.random()<P.pb?0:1+Math.floor(Math.random()*(P.k-1));
+  const ch=cands[Math.min(idx,cands.length-1)];
+  const ang=ch.ang+gauss()*P.sa;
+  const l=Math.max(30,Math.min(MAXD,ch.l*(1+gauss()*P.sp)));
+  return{c:ch.c,px:-Math.cos(ang)*l,py:-Math.sin(ang)*l};
+}
+
+function botUpdate(dt){
+  botT+=dt;
+  if(!bot&&botT>.7){bot=think();botT=0;}
+  if(bot){
+    const k=Math.min(1,botT/.6),e=k*k*(3-2*k);
+    drag={c:bot.c,sx:bot.c.x,sy:bot.c.y,x:bot.c.x+bot.px*e,y:bot.c.y+bot.py*e,id:-1};
+    if(k>=1){
+      const d=bot;bot=null;drag=null;botT=0;
+      launch(d.c,d.px,d.py);
+    }
+  }
+}
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+}
+
+function newGame(){
+  const ch=mode==='chal'&&CH,st=ch&&CH.def.st||[0,0];
+  score={blue:st[0],red:st[1]};time=matchTime();started=false;golden=false;goldT=0;
+  chLs=null;shooter=null;touched=false;
+  if(ch){CH.shots=0;CH.miss=0;}
+  turn=isBot()?'blue':(Math.random()<.5?'blue':'red');
+  state='aim';drag=null;stopT=0;moveT=0;goalT=0;acc=0;bot=null;botT=0;
+  if(mode==='tour'&&T){
+    const a=TEAMS[T.team],b=TEAMS[curOpp];
+    TC.blue=a[2];TC.red=b[2];
+    TN.blue=upName(T.team);TN.red=upName(curOpp);
+    TF.blue=fl(a[1]);TF.red=fl(b[1]);
+  }else if((mode==='two'||mode==='bot'||mode==='chal')&&SEL.a>=0&&SEL.b>=0){
+    const a=TEAMS[SEL.a],b=TEAMS[SEL.b];
+    TC.blue=a[2];TC.red=b[2];
+    TN.blue=upName(SEL.a);TN.red=upName(SEL.b);
+    TF.blue=fl(a[1]);TF.red=fl(b[1]);
+  }else{TC.blue=TC.red=null;}
+  placePieces();show(null);$('hud').classList.remove('hide');ui();
+}
+
+function leave(id){
+  sdkStop();
+  CH=null;
+  state='menu';drag=null;bot=null;botT=0;TC.blue=TC.red=null;shooter=null;
+  placePieces();score={blue:0,red:0};time=GAME_TIME;turn='blue';golden=false;goldT=0;
+  $('hud').classList.add('hide');show(id);ui();
+}
+
+function toMenu(){leave('menu');}
+function nextTurn(){turn=turn==='blue'?'red':'blue';state='aim';stopT=0;moveT=0;bot=null;botT=0;}
+
+function chShotEnd(){ // cierra el lanzamiento del jugador: si su chapa no tocó el balón, cuenta como fallo
+  if(shooter){if(!touched)CH.miss++;shooter=null;}
+}
+
+function goal(scorer){
+  const was=score.blue>score.red;
+  score[scorer]++;
+  if(mode==='chal'&&CH){
+    chShotEnd();
+    const now=score.blue>score.red;
+    if(now&&!was)chLs=time; // segundos restantes cuando el azul tomó la ventaja que mantiene
+    else if(!now)chLs=null;
+  }
+  state='goal';goalT=1.4;goalMsg=tt('gol',nm(scorer));
+  turn=scorer==='blue'?'red':'blue';bot=null;botT=0;
+  ui();
+}
+
+function endGame(){
+  sdkStop();
+  state='over';drag=null;bot=null;
+  if(mode==='chal'&&CH){chFinish();return;}
+  const b=score.blue,r=score.red;
+  let ti,c;
+  if(b===r){ti=tt('draw');c='#fff';}
+  else if(mode==='tour'){ti=tt(b>r?'vict':'defe');c=b>r?'#6db3ff':'#ff7b7b';}
+  else if(mode==='bot'){ti=tt(b>r?'youW':'botW');c=b>r?'#6db3ff':'#ff7b7b';}
+  else{ti=tt('winT',nm(b>r?'blue':'red'));c=b>r?'#6db3ff':'#ff7b7b';}
+  $('endT').textContent=ti;$('endT').style.color=c;
+  $('endS').textContent=nm('blue')+' '+b+' - '+r+' '+nm('red')+(golden?' · '+tt('gold'):'');
+  const tr=mode==='tour';
+  $('again').style.display=tr?'none':'';
+  $('cont').style.display=tr?'':'none';
+  $('again').textContent=tt('again');$('cont').textContent=tt('viewB');
+  if(tr&&b!==r)tRecord(b,r);
+  show('end');
+}
+
+function update(dt){
+  if(goldT>0)goldT-=dt;
+  if(state==='goal'){
+    goalT-=dt;
+    if(goalT<=0){
+      if(golden||score.blue>=winOf('blue')||score.red>=winOf('red'))endGame();
+      else{placePieces();state='aim';stopT=0;moveT=0;}
+    }
+    return;
+  }
+  if(state!=='aim'&&state!=='moving')return;
+  if(started&&!golden){
+    time-=dt;
+    if(time<=0){
+      time=0;ui();
+      if(mode==='tour'&&score.blue===score.red){golden=true;goldT=2.2;}
+      else{endGame();return;}
+    }
+  }
+  if(state==='aim'&&isBot()&&turn==='red')botUpdate(dt);
+  if(state==='moving'){
+    moveT+=dt;acc+=dt;let n=0;
+    while(acc>=DT&&n++<40){
+      const g=step(DT);acc-=DT;
+      if(shooter&&!touched&&Math.hypot(shooter.x-ball.x,shooter.y-ball.y)<=shooter.r+ball.r+.6)touched=true;
+      if(g){goal(g);acc=0;return;}
+    }
+    if(n>=40)acc=0;
+    if(allStopped()){stopT+=dt;if(stopT>.2){chShotEnd();nextTurn();}}else stopT=0;
+    if(moveT>15){for(const p of all)p.vx=p.vy=0;}
+  }
+}
+
+function pos(e){
+  const r=cv.getBoundingClientRect();
+  return{x:(e.clientX-r.left)*CW/r.width-GD,y:(e.clientY-r.top)*CH_/r.height-M};
+}
+
+cv.addEventListener('pointerdown',e=>{
+  if(state!=='aim'||drag||(isBot()&&turn==='red'))return;
+  const p=pos(e);let best=null,bd=1e9;
+  for(const c of caps){
+    if(c.t!==turn)continue;
+    const d=Math.hypot(c.x-p.x,c.y-p.y);
+    if(d<c.r+18&&d<bd){bd=d;best=c;}
+  }
+  if(!best)return;
+  drag={c:best,sx:p.x,sy:p.y,x:p.x,y:p.y,id:e.pointerId};
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  e.preventDefault();
+});
+
+cv.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const p=pos(e);drag.x=p.x;drag.y=p.y;e.preventDefault();
+});
+
+cv.addEventListener('pointerup',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const p=pos(e),d=drag;drag=null;
+  if(state!=='aim')return;
+  const px=p.x-d.sx,py=p.y-d.sy;
+  if(Math.hypot(px,py)<10)return;
+  launch(d.c,px,py);
+});
+
+cv.addEventListener('pointercancel',e=>{
+  if(drag&&e.pointerId===drag.id)drag=null;
+});
+
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+document.addEventListener('touchmove',e=>{
+  if(!e.target.closest||!e.target.closest('.scroll'))e.preventDefault();
+},{passive:false});
+
+function drawField(){
+  ctx.fillStyle='#0d3b1e';ctx.fillRect(-GD,-M,CW,CH_);
+  const n=14,w=FW/n;
+  for(let i=0;i<n;i++){
+    ctx.fillStyle=i%2?'#2c9246':'#32a04d';
+    ctx.fillRect(i*w,0,w+1,FH);
+  }
+  ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.strokeRect(0,0,FW,FH);
+  ctx.beginPath();ctx.moveTo(FW/2,0);ctx.lineTo(FW/2,FH);ctx.stroke();
+  ctx.beginPath();ctx.arc(FW/2,CY,90,0,7);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(FW/2,CY,5,0,7);ctx.fill();
+  for(const s of [0,1]){
+    const f=s?-1:1,x0=s?FW:0;
+    ctx.strokeRect(s?FW-165:0,CY-200,165,400);
+    ctx.strokeRect(s?FW-55:0,CY-110,55,220);
+    ctx.beginPath();ctx.arc(x0+f*115,CY,5,0,7);ctx.fill();
+    const a=Math.acos(50/80);ctx.beginPath();
+    if(!s)ctx.arc(115,CY,80,-a,a);
+    else ctx.arc(FW-115,CY,80,Math.PI-a,Math.PI+a);
+    ctx.stroke();
+  }
+  for(const s of [0,1]){
+    const x=s?FW:-GD;
+    ctx.fillStyle='rgba(255,255,255,.14)';
+    ctx.fillRect(x,GY1,GD,GY2-GY1);
+    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;ctx.beginPath();
+    for(let i=0;i<=GD;i+=10){ctx.moveTo(x+i,GY1);ctx.lineTo(x+i,GY2);}
+    for(let y=GY1;y<=GY2;y+=10){ctx.moveTo(x,y);ctx.lineTo(x+GD,y);}
+    ctx.stroke();
+    ctx.strokeStyle='#fff';ctx.lineWidth=4;ctx.strokeRect(x,GY1,GD,GY2-GY1);
+  }
+  ctx.fillStyle='#fff';
+  for(const p of posts){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
+}
+
+function drawCap(c,t){
+  const hx=TC[c.t];let col,bd,ir='rgba(255,255,255,.4)';
+  if(hx){
+    const lm=lum(hx);
+    col=[shade(hx,.4),hx,shade(hx,-.35)];
+    bd=lm>.6?'#2b2b2b':lm<.3?'#e8e8e8':shade(hx,-.5);
+    if(lm>.6)ir='rgba(0,0,0,.28)';
+  }else{
+    col=c.t==='blue'?['#8cc4ff','#1e63d6','#0a3585']:['#ff9a9a','#d62828','#7a0c0c'];
+    bd=col[2];
+  }
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath();ctx.ellipse(c.x+4,c.y+6,c.r,c.r*.9,0,0,7);ctx.fill();
+  if(c.t===turn&&(state==='aim'||state==='moving')){
+    ctx.shadowColor='#ffe600';ctx.shadowBlur=14+3*Math.sin(t*5);
+    ctx.strokeStyle='#ffe600';ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(c.x,c.y,c.r+5,0,7);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+  const g=ctx.createRadialGradient(c.x-8,c.y-8,2,c.x,c.y,c.r);
+  g.addColorStop(0,col[0]);g.addColorStop(.6,col[1]);g.addColorStop(1,col[2]);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,7);ctx.fill();
+  ctx.strokeStyle=bd;ctx.lineWidth=3;ctx.stroke();
+  ctx.strokeStyle=ir;ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(c.x,c.y,c.r*.58,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.35)';
+  ctx.beginPath();ctx.ellipse(c.x-8,c.y-9,6,3.5,-.7,0,7);ctx.fill();
+  ctx.restore();
+}
+
+function drawBall(b){
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath();ctx.ellipse(b.x+3,b.y+4,b.r,b.r*.9,0,0,7);ctx.fill();
+  const g=ctx.createRadialGradient(b.x-4,b.y-4,1,b.x,b.y,b.r);
+  g.addColorStop(0,'#fff');g.addColorStop(1,'#d4d4d4');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill();
+  ctx.strokeStyle='#8a8a8a';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='#555';ctx.beginPath();ctx.arc(b.x,b.y,b.r*.32,0,7);ctx.fill();
+  ctx.restore();
+}
+
+function drawAim(){
+  if(!drag)return;
+  const c=drag.c;let px=drag.x-drag.sx,py=drag.y-drag.sy;
+  const len=Math.hypot(px,py);
+  if(len<1)return;
+  const l=Math.min(len,MAXD),ux=px/len,uy=py/len;
+  ctx.save();ctx.lineCap='round';
+  ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(c.x+ux*l,c.y+uy*l);ctx.stroke();
+  ctx.restore();
+}
+
+function draw(t){
+  ctx.setTransform(cv.width/CW,0,0,cv.height/CH_,0,0);
+  ctx.translate(GD,M);
+  drawField();
+  for(const c of caps)drawCap(c,t);
+  drawBall(ball);
+  drawAim();
+  if(state==='goal'||goldT>0){
+    const m=state==='goal'?goalMsg:tt('gold');
+    ctx.save();ctx.font='900 80px system-ui,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=8;ctx.strokeStyle='#000a';ctx.strokeText(m,FW/2,CY);
+    ctx.fillStyle='#ffe600';ctx.fillText(m,FW/2,CY);ctx.restore();
+  }
+}
+
+function ui(){
+  const tm=!!TC.blue;
+  $('sb').textContent=score.blue;$('sr').textContent=score.red;
+  const s=Math.ceil(time);
+  $('time').textContent=golden?tt('goldT'):Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  $('lb').textContent=tm?TF.blue+' '+TN.blue:tt('blue');
+  $('lr').textContent=tm?TN.red+' '+TF.red:tt('red');
+  $('tb').style.color=$('trd').style.color=tm?'#fff':'';
+  $('tb').style.borderBottom=tm?'3px solid '+TC.blue:'';
+  $('trd').style.borderBottom=tm?'3px solid '+TC.red:'';
+  const tn=$('turn');
+  tn.textContent=isBot()?(turn==='red'?tt('tBot'):tt('tYou',nm('blue'))):tt('tOf',nm(turn));
+  tn.style.color=turn==='blue'?'#6db3ff':'#ff7b7b';
+  $('dl').textContent=mode==='chal'&&CH?tt('chL',CH.i+1)+(CH.def.bd.length>1?' · '+(CH.round+1)+'/'+CH.def.bd.length:'')+' · '+dn(diff):mode==='tour'&&T?tt('tourL',rn(T.round),dn(diff)):mode==='bot'?tt('botL',dn(diff)):tt('two');
+}
+
+function fit(){
+  const r=stage.getBoundingClientRect(),sc=Math.min(r.width/CW,r.height/CH_);
+  const w=Math.max(10,CW*sc),h=Math.max(10,CH_*sc),d=window.devicePixelRatio||1;
+  cv.style.width=w+'px';cv.style.height=h+'px';
+  cv.width=Math.round(w*d);cv.height=Math.round(h*d);
+}
+
+window.addEventListener('resize',()=>{layout();fit();});
+window.addEventListener('orientationchange',()=>{layout();fit();});
+
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
+  const g=b.dataset.go;
+  if(g==='two')openSel('two');
+  else if(g==='menu')toMenu();
+  else if(g==='tour')openTour();
+  else if(g==='chal')openChal();
+  else show(g);
+}));
+
+document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{
+  diff=b.dataset.d;openSel('bot');
+}));
+
+const TIMES=[120,180,240,300,360,420,480,540,600];
+const GOALS=[1,2,3,4,5];
+
+function refreshOpts(){
+  const l=LANGS.find(x=>x[0]===LANG);
+  $('oTime').textContent=tt('dur',GAME_TIME/60);
+  $('oGoals').textContent=tt('gls',WIN_GOALS);
+  $('oLang').textContent=tt('lang')+': '+fl(l[2])+' '+l[1];
+}
+
+$('oTime').addEventListener('click',()=>{
+  GAME_TIME=TIMES[(TIMES.indexOf(GAME_TIME)+1)%TIMES.length];
+  refreshOpts();
+});
+
+$('oGoals').addEventListener('click',()=>{
+  WIN_GOALS=GOALS[(GOALS.indexOf(WIN_GOALS)+1)%GOALS.length];
+  refreshOpts();
+});
+
+$('rst').addEventListener('click',()=>{if(mode==='chal'&&CH)chBegin(CH.i);else startNewGame();});
+$('bMenu').addEventListener('click',toMenu);
+$('again').addEventListener('click',()=>{if(mode==='chal'&&CH)chBegin(CH.i);else startNewGame();});
+
+// ---------- Idioma ----------
+function applyStatic(){
+  document.querySelectorAll('[data-i]').forEach(e=>{e.textContent=tt(e.dataset.i);});
+  document.querySelectorAll('[data-ti]').forEach(e=>{e.title=tt(e.dataset.ti);e.setAttribute('aria-label',tt(e.dataset.ti));});
+}
+function paintLang(){
+  $('llist').innerHTML=LANGS.map(l=>'<div class="lg'+(l[0]===LANG?' on':'')+'" data-c="'+l[0]+'"><span class="fg">'+fl(l[2])+'</span><b>'+l[1]+'</b>'+(l[0]===LANG?'<i>✓</i>':'')+'</div>').join('');
+}
+function refreshLang(){
+  document.documentElement.lang=LANG==='pt'?'pt-BR':LANG;
+  applyStatic();buildTeamUI();refreshOpts();paintLang();ui();
+}
+function setLang(c){
+  if(!LNG[c])return;
+  LANG=c;
+  try{localStorage.setItem(LKEY,c);}catch(e){}
+  refreshLang();
+}
+$('llist').addEventListener('click',e=>{
+  const c=e.target.closest('.lg');
+  if(c)setLang(c.dataset.c);
+});
+$('oLang').addEventListener('click',()=>{paintLang();show('lang');});
+
+// ---------- Selección de equipos: 2 Jugadores / VS BOT / Desafíos ----------
+function cp(i){
+  if(i<0)return '<div class="cp q">?</div>';
+  const h=TEAMS[i][2],lm=lum(h),bd=lm>.6?'#2b2b2b':lm<.3?'#e8e8e8':shade(h,-.5);
+  return '<div class="cp" style="background:radial-gradient(circle at 35% 30%,'+shade(h,.4)+','+h+' 60%,'+shade(h,-.35)+');border:3px solid '+bd+'"></div>';
+}
+function openSel(kind){
+  SEL={a:-1,b:-1,rnd:kind!=='two',act:0,kind};
+  paintSel();show('tsel');
+}
+function reroll(){
+  if(SEL.a<0){SEL.b=-1;return;}
+  const c=[...Array(32).keys()].filter(x=>x!==SEL.a);
+  SEL.b=c[Math.floor(Math.random()*c.length)];
+}
+function paintSel(){
+  const s=SEL,two=s.kind==='two',act=(!two&&s.rnd)?0:s.act;
+  $('tsT').textContent=tt(two?'sT2':s.kind==='bot'?'sTB':'sTC');
+  const slot=(k,lab,i)=>'<div class="slot'+(act===k?' act':'')+'" data-s="'+k+'"><small>'+lab+'</small>'+cp(i)+'<b>'+(i<0?'?':fl(TEAMS[i][1])+' '+tname(i))+'</b></div>';
+  $('tprev').innerHTML=slot(0,tt(two?'p1':'you'),s.a)+'<span id="tvs">VS</span>'+slot(1,tt(two?'p2':'rv'),s.b);
+  $('shint').textContent=(!two&&s.rnd)?(s.a<0?tt('hY'):'🎲 '+tt('rndT')):act===0?tt(two?'h1':'hY'):tt(two?'h2':'hB');
+  $('rtog').style.display=two?'none':'';
+  $('rpick').classList.toggle('on',!s.rnd);$('rrnd').classList.toggle('on',s.rnd);
+  document.querySelectorAll('#sgrid .tc').forEach(el=>{
+    const i=+el.dataset.i;
+    el.classList.toggle('s1',s.a===i);el.classList.toggle('s2',s.b===i);
+    if(s.a===i)el.dataset.b='1';else if(s.b===i)el.dataset.b='2';else delete el.dataset.b;
+  });
+  $('sgo').disabled=!(s.a>=0&&s.b>=0);
+}
+function selPick(i){
+  const s=SEL,two=s.kind==='two',slot=(!two&&s.rnd)?0:s.act,other=slot===0?s.b:s.a;
+  if(i===other)return; // un equipo ya elegido por el otro lado no se puede repetir
+  if(slot===0){
+    s.a=i;
+    if(!two&&s.rnd)reroll();
+    else if(s.b<0)s.act=1;
+  }else s.b=i;
+  paintSel();
+}
+$('sgrid').addEventListener('click',e=>{
+  const c=e.target.closest('.tc');
+  if(c)selPick(+c.dataset.i);
+});
+$('tprev').addEventListener('click',e=>{
+  const c=e.target.closest('.slot');
+  if(!c)return;
+  const k=+c.dataset.s;
+  if(SEL.kind!=='two'&&SEL.rnd)return;
+  SEL.act=k;paintSel();
+});
+$('rpick').addEventListener('click',()=>{SEL.rnd=false;SEL.b=-1;SEL.act=SEL.a>=0?1:0;paintSel();});
+$('rrnd').addEventListener('click',()=>{SEL.rnd=true;SEL.act=0;reroll();paintSel();});
+$('sgo').addEventListener('click',()=>{
+  if(SEL.a<0||SEL.b<0)return;
+  if(SEL.kind==='two'){mode='two';startNewGame();}
+  else if(SEL.kind==='bot'){mode='bot';startNewGame();}
+  else chBegin(chIdx);
+});
+$('sback').addEventListener('click',()=>{
+  if(SEL.kind==='two')toMenu();
+  else if(SEL.kind==='bot')show('diff');
+  else chIntro(chIdx);
+});
+
+// ---------- Torneo (lógica sin cambios; solo se traducen los textos) ----------
+function tSave(){
+  try{localStorage.setItem(SKEY,JSON.stringify(T));}catch(e){}
+}
+
+function tLoad(){
+  try{
+    const s=localStorage.getItem(SKEY);
+    T=s?JSON.parse(s):null;
+  }catch(e){T=null;}
+  if(T&&!(T.draw&&T.draw.length===32&&T.res&&T.sc&&TEAMS[T.team]))T=null;
+}
+
+const tParts=r=>r===0?T.draw:T.res[r-1];
+
+function tMatch(){
+  const p=tParts(T.round);
+  for(let k=0;k<p.length;k+=2){
+    if(p[k]===T.team||p[k+1]===T.team){
+      return{i:k/2,opp:p[k]===T.team?p[k+1]:p[k]};
+    }
+  }
+  return null;
+}
+
+function tSim(r){
+  const p=tParts(r);
+  for(let i=0;i<p.length/2;i++){
+    if(T.res[r][i]>=0)continue;
+    const a=p[2*i],b=p[2*i+1];
+    const wa=Math.pow(34-a,1.5),wb=Math.pow(34-b,1.5);
+    const aw=Math.random()<wa/(wa+wb);
+    const g=T.goals,l=Math.floor(Math.random()*g);
+    T.res[r][i]=aw?a:b;
+    T.sc[r][i]=aw?[g,l]:[l,g];
+  }
+}
+
+function tRecord(b,r){
+  const rd=T.round,m=tMatch(),p=tParts(rd),meA=p[2*m.i]===T.team,win=b>r;
+  T.res[rd][m.i]=win?T.team:m.opp;
+  T.sc[rd][m.i]=meA?[b,r]:[r,b];
+  tSim(rd);
+  if(win){
+    if(rd===4)T.champ=true;
+    else T.round=rd+1;
+  }else{
+    T.out=rd;
+    for(let x=rd+1;x<5;x++)tSim(x);
+  }
+  tSave();
+}
+
+function tStart(){
+  if(CFG.sel<0)return;
+  const d=[...Array(32).keys()];
+  for(let i=31;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [d[i],d[j]]=[d[j],d[i]];
+  }
+  T={
+    team:CFG.sel,diff:CFG.diff,time:CFG.time,goals:CFG.goals,draw:d,
+    res:[16,8,4,2,1].map(n=>Array(n).fill(-1)),
+    sc:[16,8,4,2,1].map(n=>Array(n).fill(null)),
+    round:0,out:-1,champ:false
+  };
+  tSave();showBracket();
+}
+
+function tPlay(){
+  const m=tMatch();
+  if(!m)return;
+  curOpp=m.opp;mode='tour';diff=T.diff;
+  startNewGame();
+}
+
+function mRow(id,g,cls){
+  if(id==null||id<0)return '<div class="tr"><i style="background:#555"></i>'+tt('tbd')+'</div>';
+  const x=TEAMS[id];
+  return '<div class="tr '+cls+(id===T.team?' me':'')+'"><i style="background:'+x[2]+'"></i>'+fl(x[1])+' '+tname(id)+'<b>'+(g==null?'':g)+'</b></div>';
+}
+
+function renderBracket(){
+  const me=TEAMS[T.team],alive=T.out<0&&!T.champ;
+  $('binfo').textContent=tt('bInfo',fl(me[1])+' '+tname(T.team),dn(T.diff),T.time/60,goalsTxt(T.goals));
+  let h='';
+  for(let r=0;r<5;r++){
+    const p=tParts(r),n=16>>r;
+    let ms='';
+    for(let i=0;i<n;i++){
+      const a=p[2*i],b=p[2*i+1],w=T.res[r][i],s=T.sc[r][i]||[null,null];
+      const cur=alive&&r===T.round&&(a===T.team||b===T.team);
+      ms+='<div class="mc'+(cur?' cur':'')+'">'+mRow(a,s[0],w<0?'':a===w?'w':'l')+mRow(b,s[1],w<0?'':b===w?'w':'l')+'</div>';
+    }
+    h+='<div class="rc" data-r="'+r+'"><h4>'+rn(r)+'</h4><div class="ml">'+ms+'</div></div>';
+  }
+  const ch=T.res[4][0];
+  h+='<div class="rc" data-r="5"><h4>'+tt('champ')+'</h4><div class="ml"><div class="mc'+(ch>=0?' cur':'')+'">'+(ch>=0?mRow(ch,null,'w'):mRow(-1))+'</div></div></div>';
+  $('bk').innerHTML=h;
+  const st=$('bstat');
+  if(T.champ)st.textContent=tt('champY');
+  else if(T.out>=0){
+    const c=TEAMS[T.res[4][0]];
+    st.textContent=tt('elim',rn(T.out),fl(c[1])+' '+tname(T.res[4][0]));
+  }else{
+    const oi=tMatch().opp,o=TEAMS[oi];
+    st.textContent=tt('rInfo',rn(T.round),fl(o[1])+' '+tname(oi));
+  }
+  $('bplay').style.display=alive?'':'none';
+  $('bplay').textContent=alive?tt('play',rn(T.round)):'';
+  const col=$('bk').querySelector('.rc[data-r="'+(alive?T.round:4)+'"]');
+  $('bbox').scrollLeft=col?Math.max(0,$('bbox').scrollLeft+col.getBoundingClientRect().left-$('bk').getBoundingClientRect().left-12):0;
+}
+
+function showBracket(){
+  leave('bracket');
+  renderBracket();
+}
+
+function openCfg(){
+  CFG={sel:-1,diff:'normal',time:TIMES.includes(120)?120:TIMES[0],goals:3};
+  paintCfg();$('cbox').scrollTop=0;show('tcfg');
+}
+
+function openTour(){
+  tLoad();
+  if(T)showBracket();
+  else openCfg();
+}
+
+function paintCfg(){
+  document.querySelectorAll('#tgrid .tc').forEach(el=>el.classList.toggle('sel',+el.dataset.i===CFG.sel));
+  document.querySelectorAll('#tcfg .chip').forEach(el=>el.classList.toggle('on',String(CFG[el.parentNode.dataset.k])===el.dataset.v));
+  $('cgo').disabled=CFG.sel<0;
+  $('csel').textContent=CFG.sel<0?tt('pickSel'):tt('yourSel',fl(TEAMS[CFG.sel][1])+' '+tname(CFG.sel));
+}
+
+function mkChips(k,arr,lab){
+  document.querySelector('.chips[data-k="'+k+'"]').innerHTML=arr.map(v=>'<span class="chip" data-v="'+v+'">'+lab(v)+'</span>').join('');
+}
+
+function buildTeamUI(){ // se reconstruye al cambiar de idioma
+  mkChips('diff',['easy','normal','hard'],dn);
+  mkChips('time',TIMES,v=>tt('mn',v/60));
+  mkChips('goals',GOALS,goalsTxt);
+  const g=TEAMS.map((x,i)=>'<div class="tc" data-i="'+i+'"><small>'+(i+1)+'</small><span class="fg">'+fl(x[1])+'</span><b>'+tname(i)+'</b><i style="background:'+x[2]+'"></i></div>').join('');
+  $('tgrid').innerHTML=g;$('sgrid').innerHTML=g;
+  paintCfg();paintSel();
+}
+
+$('tcfg').addEventListener('click',e=>{
+  const c=e.target.closest('.chip'),x=e.target.closest('.tc');
+  if(c){
+    const k=c.parentNode.dataset.k,v=c.dataset.v;
+    CFG[k]=k==='diff'?v:+v;
+    paintCfg();
+  }else if(x){
+    CFG.sel=+x.dataset.i;
+    paintCfg();
+  }
+});
+
+$('cgo').addEventListener('click',tStart);
+$('bplay').addEventListener('click',tPlay);
+$('bnew').addEventListener('click',openCfg);
+
+// ---------- Desafíos ----------
+// bd: dificultad del BOT en cada partido (varios = serie) · st: marcador inicial [azul,rojo]
+// win: goles para terminar (número o [azul,rojo]) · time: segundos · bl/rl: chapas azules/rojas (índices de la formación)
+// ok(R): ¿objetivo cumplido? · m/th: métrica y umbrales [plata,oro] (d=diferencia de goles, t=segundos restantes, s=menos lanzamientos, l=gol decisivo más cerca del final)
+// lv: M/D/E · xf: nota extra (clave de traducción). Nombre y descripción: ver CHT.
+const CHS=[
+{lv:'M',bd:['normal'],st:[0,2],win:5,time:180,ok:R=>R.b>R.r,m:'d',th:[2,3]},
+{lv:'M',bd:['normal'],win:[3,99],time:60,xf:'xClock',ok:R=>R.b>=3,m:'t',th:[15,30]},
+{lv:'M',bd:['normal'],win:3,time:120,ok:R=>R.b>R.r&&R.r===0,m:'t',th:[30,60]},
+{lv:'D',bd:['normal'],st:[1,1],win:[9,9],time:45,xf:'xLast',ok:R=>R.b>R.r&&R.ls!=null&&R.ls<=10,m:'l',th:[-6,-3]},
+{lv:'M',bd:['normal'],win:5,time:150,ok:R=>R.b-R.r>=3,m:'t',th:[30,60]},
+{lv:'D',bd:['hard'],win:3,time:120,ok:R=>R.b>R.r,m:'d',th:[2,3]},
+{lv:'D',bd:['normal'],win:3,time:150,xf:'xMiss',ok:R=>R.b>R.r&&R.miss===0,m:'s',th:[-9,-6]},
+{lv:'D',bd:['easy'],bl:[0,3],win:3,time:150,xf:'xNum',ok:R=>R.b>R.r,m:'d',th:[2,3]},
+{lv:'D',bd:['normal'],win:[2,99],time:30,xf:'xClock',ok:R=>R.b>=2,m:'t',th:[8,15]},
+{lv:'E',bd:['normal'],st:[0,3],win:6,time:240,ok:R=>R.b>R.r,m:'d',th:[2,3]},
+{lv:'E',bd:['hard'],win:3,time:120,ok:R=>R.b>R.r&&R.r===0,m:'t',th:[30,60]},
+{lv:'M',bd:['normal','normal'],win:3,time:120,ok:R=>R.b>R.r,m:'d',th:[3,5]},
+{lv:'E',bd:['easy','normal','hard'],win:3,time:120,ok:R=>R.b>R.r,m:'d',th:[4,7]},
+{lv:'M',bd:['normal'],win:[99,1],time:120,xf:'xFull',ok:R=>R.r===0,m:'d',th:[1,3]},
+{lv:'E',bd:['hard'],win:5,time:180,ok:R=>R.b-R.r>=3,m:'d',th:[4,5]}
+];
+const MED=['','🥉','🥈','🥇'];
+const fmtT=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+
+try{localStorage.setItem('chapix_t','1');localStorage.removeItem('chapix_t');}catch(e){storeOK=false;}
+function pLoad(){
+  try{const s=localStorage.getItem(CKEY);if(s)PROG=JSON.parse(s)||{};}catch(e){}
+}
+function pSave(){
+  try{localStorage.setItem(CKEY,JSON.stringify(PROG));storeOK=true;}catch(e){storeOK=false;}
+}
+
+function renderChal(){
+  const done=Object.keys(PROG).length,cnt=[0,0,0,0];
+  for(const k in PROG)cnt[PROG[k]]++;
+  $('cprog').textContent=tt('prog',done,CHS.length,cnt[1],cnt[2],cnt[3]);
+  $('cwarn').style.display=storeOK?'none':'';
+  $('clist').innerHTML=CHS.map((c,i)=>{
+    const m=PROG[i],un=i<=done+2,st=m?'done':un?'open':'lock';
+    const tag=m?MED[m]+' '+tt('sDone'):un?tt('sOpen'):'🔒 '+tt('sLock')+'<small>'+tt('sMore',i-2-done)+'</small>';
+    const lc={M:'m',D:'d',E:'e'}[c.lv],x=chT(i);
+    return '<div class="ch '+st+'" data-i="'+i+'"><span class="cn">'+(i+1)+'</span><div class="ci"><b>'+x[0]+'</b><small>'+x[1]+'</small><em class="lv'+lc+'">'+tt('lv'+c.lv)+'</em></div><span class="cs">'+tag+'</span></div>';
+  }).join('');
+}
+function showChal(){leave('chal');renderChal();}
+function openChal(){pLoad();showChal();}
+
+function medTxt(c,k){
+  const v=c.th[k],sd=c.bd.length>1;
+  return c.m==='d'?tt(sd?'mDt':'mD',v):c.m==='t'?tt('mT',v):c.m==='s'?tt('mS',-v):tt('mL',-v);
+}
+function xNote(c){
+  const p=[];
+  if(c.st)p.push(tt('xInit',c.st[0],c.st[1]));
+  if(typeof c.win==='number')p.push(tt('xTo',c.win));
+  if(c.bd.length>1)p.push(tt('xSer',c.bd.length));
+  if(c.xf)p.push(tt(c.xf));
+  return p.join(' · ');
+}
+function chIntro(i){
+  chIdx=i;const c=CHS[i],sd=c.bd.length>1,x=chT(i);
+  $('hn').textContent=(i+1)+'. '+x[0];
+  $('hd').textContent=x[1];
+  $('hi').innerHTML=tt('hDiff')+': <b>'+tt('lv'+c.lv)+'</b><br>'+tt('hBot')+': '+c.bd.map(dn).join(' → ')+' · '+tt('hTime')+': '+fmtT(c.time)+(sd?' '+tt('hPer'):'')+'<br>'+xNote(c);
+  $('hm').textContent=tt('mLine',medTxt(c,0),medTxt(c,1));
+  show('chint');
+}
+function chBegin(i){CH={def:CHS[i],i,round:0,sb:0,sr:0,shots:0,miss:0,next:false};chRound();}
+function chRound(){mode='chal';diff=CH.def.bd[CH.round];startNewGame();}
+function chCont(){if(CH&&CH.next){CH.round++;chRound();}else showChal();}
+
+function chFinish(){ // comprueba el objetivo con los datos reales de la partida
+  const c=CH.def,n=c.bd.length,last=CH.round>=n-1;
+  const R={b:score.blue,r:score.red,t:Math.max(0,time),shots:CH.shots,miss:CH.miss,ls:chLs};
+  const win=!!c.ok(R);
+  CH.sb+=R.b;CH.sr+=R.r;CH.next=false;
+  let ti,col,s=chT(CH.i)[0]+' · '+nm('blue')+' '+R.b+' - '+R.r+' '+nm('red');
+  $('again').style.display='';$('cont').style.display='';
+  if(win&&!last){
+    ti=tt('mOk',CH.round+1,n);col='#6db3ff';CH.next=true;
+    $('again').style.display='none';$('cont').textContent=tt('nextM');
+  }else{
+    if(win){
+      const v=c.m==='d'?(n>1?CH.sb-CH.sr:R.b-R.r):c.m==='t'?R.t:c.m==='s'?-R.shots:-(R.ls==null?99:R.ls);
+      const m=v>=c.th[1]?3:v>=c.th[0]?2:1;
+      if(m>(PROG[CH.i]||0)){PROG[CH.i]=m;pSave();}
+      ti=tt('chOk');col='#6db3ff';s+=' · '+MED[m];
+    }else{ti=tt('chFail');col='#ff7b7b';}
+    if(c.m==='s')s+=tt('shots',R.shots,R.miss);
+    if(!storeOK)s+=tt('noSave');
+    $('again').textContent=tt('retry');$('cont').textContent=tt('seeC');
+  }
+  $('endT').textContent=ti;$('endT').style.color=col;$('endS').textContent=s;
+  show('end');
+}
+
+$('clist').addEventListener('click',e=>{
+  const c=e.target.closest('.ch');
+  if(c&&!c.classList.contains('lock'))chIntro(+c.dataset.i);
+});
+$('hgo').addEventListener('click',()=>openSel('chal'));
+$('hback').addEventListener('click',showChal);
+$('cont').addEventListener('click',()=>{
+  if(mode==='chal'&&CH)chCont();
+  else if(T)showBracket();
+  else toMenu();
+});
+
+function loop(ms){
+  const t=ms/1000,dt=Math.min(.1,last?t-last:0);
+  last=t;
+  update(dt);ui();draw(t);
+  requestAnimationFrame(loop);
+}
+
+LANG=detectLang();
+refreshLang();
+layout();placePieces();ui();fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
