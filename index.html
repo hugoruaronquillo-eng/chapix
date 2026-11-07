@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>CHAPIX</title>
-    <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
-    <style>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>CHAPIX</title>
+<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+<style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 body{background:#0a1f12;color:#fff;font-family:system-ui,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;height:100dvh}
@@ -50,7 +50,7 @@ background:radial-gradient(ellipse at center,#031a0a99 0%,#010a05ee 100%);opacit
 .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .chip{padding:7px 12px;border-radius:18px;background:#14291c;border:2px solid #1f3a2a;font-weight:700;cursor:pointer;font-size:14px}
 .chip.on{background:#ffd60a;color:#222;border-color:#ffd60a}
-#tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;padding:2px}
+#tgrid,#sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;padding:2px}
 .tc{position:relative;background:#14291c;border:3px solid #1f3a2a;border-radius:12px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-size:13px}
 .tc .fg{font-size:30px;line-height:1}
 .tc i{width:26px;height:26px;border-radius:50%;box-shadow:0 0 0 2px #fffa}
@@ -89,6 +89,27 @@ background:radial-gradient(ellipse at center,#031a0a99 0%,#010a05ee 100%);opacit
 #cwarn{color:#ff9a3c;font-size:12px}
 #chint .scroll{max-width:560px;display:flex;flex-direction:column;gap:12px;padding-top:6px}
 #hi{line-height:1.6}
+/* ---- Selección de equipos (2 jugadores, VS BOT, Desafíos) ---- */
+#tprev{display:flex;align-items:stretch;justify-content:center;gap:10px;width:min(560px,100%)}
+.slot{flex:1;min-width:0;background:#14291c;border:3px solid #1f3a2a;border-radius:12px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.slot.act{border-color:#ffd60a;box-shadow:0 0 12px #ffd60a88}
+.slot small{font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:1px}
+.slot b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cp{width:48px;height:48px;border-radius:50%;box-shadow:0 4px 0 #0008}
+.cp.q{background:#0a1f12;border:3px dashed #3a5a46;box-shadow:none;display:flex;align-items:center;justify-content:center;color:#3a5a46;font-weight:800}
+#tvs{align-self:center;font-family:Impact,'Arial Black',sans-serif;font-style:italic;color:#ffd60a;font-size:20px}
+#shint{font-size:13px;min-height:18px}
+#rtog button.on{background:#ffd60a;color:#222;box-shadow:0 5px 0 #a08400}
+#sgrid .tc.s1{border-color:#6db3ff;background:#1b3550}
+#sgrid .tc.s2{border-color:#ff7b7b;background:#4a2427}
+#sgrid .tc[data-b]::after{content:attr(data-b);position:absolute;top:2px;right:6px;font-weight:900;color:#ffd60a}
+@media (max-height:420px){#tsel h2{display:none}.cp{width:34px;height:34px}.slot small{display:none}}
+/* ---- Idioma ---- */
+#llist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;padding:2px}
+.lg{display:flex;align-items:center;gap:12px;background:#14291c;border:3px solid #1f3a2a;border-radius:12px;padding:12px 14px;cursor:pointer;font-size:17px;font-weight:700;text-align:left}
+.lg .fg{font-size:30px;line-height:1}
+.lg.on{border-color:#ffd60a;background:#2a4d36}
+.lg i{margin-left:auto;color:#ffd60a;font-style:normal}
 /* ---- Marcador vertical a la izquierda: SOLO teléfonos móviles en horizontal (clase puesta por JS) ---- */
 html.phone-land body{flex-direction:row}
 html.phone-land #stage{min-width:0}
@@ -104,133 +125,131 @@ html.phone-land #turn{display:block;font-size:10px;padding:2px 4px;margin:3px 0}
 html.phone-land #row{flex-direction:column;gap:4px;font-size:10px}
 html.phone-land #row button{width:100%;padding:3px 4px}
 </style>
-  </head>
-  <body>
-    <div id="hud" class="hide">
-      <div class="team blue" id="tb">
-        <span id="lb">AZULES</span> <b id="sb">0</b>
-      </div>
-      <div id="mid">
-        <div id="time">2:00</div>
-        <div id="turn">Turno: AZULES</div>
-        <div id="row">
-          <button class="sm" id="bMenu">☰ Menú</button>
-          <span id="dl">
-          </span>
-          <button class="sm" id="rst">↻ Reiniciar</button>
-        </div>
-      </div>
-      <div class="team red" id="trd">
-        <b id="sr">0</b> <span id="lr">ROJOS</span>
-      </div>
-    </div>
-    <div id="stage">
-      <canvas id="cv">
-      </canvas>
-    </div>
-    <div id="menu" class="screen on">
-      <h1>CHAP<span>IX</span>
-    </h1>
-    <p>⚽ Cuatro chapas por equipo · Un balón · Mucha puntería</p>
-    <div class="mgrid">
-      <button data-go="two">2 Jugadores</button>
-      <button data-go="diff">VS BOT</button>
-      <button data-go="tour">Torneo</button>
-      <button data-go="chal">Desafíos</button>
-    </div>
-    <button class="alt" id="gear" data-go="opts" aria-label="Ajustes" title="Ajustes">⚙</button>
-  </div>
-  <div id="diff" class="screen">
-    <h2>Elige la dificultad</h2>
-    <p>Juegas con los AZULES contra el BOT (ROJOS)</p>
-    <button data-d="easy">Fácil</button>
-    <button data-d="normal">Normal</button>
-    <button data-d="hard">Difícil</button>
-    <button class="alt" data-go="menu">← Volver</button>
-  </div>
-  <div id="opts" class="screen">
-    <h2>Opciones</h2>
-    <button id="oTime">Duración: 2 min</button>
-    <button id="oGoals">Goles para ganar: 3</button>
-    <button class="alt" data-go="menu">← Volver</button>
-  </div>
-  <div id="end" class="screen">
-    <h1 id="endT">
-    </h1>
-    <p id="endS">
-    </p>
-    <button id="again">Jugar otra partida</button>
-    <button id="cont" style="display:none">Ver cuadro</button>
-    <button class="alt" data-go="menu">Menú principal</button>
-  </div>
-  <div id="tcfg" class="screen tall">
-    <h2>TORNEO</h2>
-    <p id="csel">Elige tu selección</p>
-    <div class="scroll" id="cbox">
-      <h3>Dificultad del BOT</h3>
-      <div class="chips" data-k="diff">
-      </div>
-      <h3>Duración del partido</h3>
-      <div class="chips" data-k="time">
-      </div>
-      <h3>Goles para ganar</h3>
-      <div class="chips" data-k="goals">
-      </div>
-      <h3>Tu selección</h3>
-      <div id="tgrid">
-      </div>
-    </div>
-    <div class="brow">
-      <button id="cgo" disabled>COMENZAR TORNEO</button>
-      <button class="alt" data-go="menu">← Volver</button>
+</head>
+<body>
+<div id="hud" class="hide">
+  <div class="team blue" id="tb"><span id="lb">AZULES</span> <b id="sb">0</b></div>
+  <div id="mid">
+    <div id="time">2:00</div>
+    <div id="turn">Turno: AZULES</div>
+    <div id="row">
+      <button class="sm" id="bMenu" data-i="menuB">☰ Menú</button>
+      <span id="dl"></span>
+      <button class="sm" id="rst" data-i="rstB">↻ Reiniciar</button>
     </div>
   </div>
-  <div id="bracket" class="screen tall">
-    <h2>CUADRO DEL TORNEO</h2>
-    <p id="binfo">
-    </p>
-    <div class="scroll" id="bbox">
-      <div id="bk">
-      </div>
-    </div>
-    <p id="bstat">
-    </p>
-    <div class="brow">
-      <button id="bplay">Jugar partido</button>
-      <button class="alt" id="bnew">Nuevo torneo</button>
-      <button class="alt" data-go="menu">← Menú</button>
-    </div>
+  <div class="team red" id="trd"><b id="sr">0</b> <span id="lr">ROJOS</span></div>
+</div>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<div id="menu" class="screen on">
+  <h1>CHAP<span>IX</span></h1>
+  <p data-i="tag"></p>
+  <div class="mgrid">
+    <button data-go="two" data-i="m2"></button>
+    <button data-go="diff" data-i="mb"></button>
+    <button data-go="tour" data-i="mt"></button>
+    <button data-go="chal" data-i="mc"></button>
   </div>
-  <div id="chal" class="screen tall">
-    <h2>DESAFÍOS</h2>
-    <p id="cprog">
-    </p>
-    <p id="cwarn" style="display:none">⚠ Este navegador bloquea el guardado: el progreso no se conservará al cerrar el juego.</p>
-    <div class="scroll">
-      <div id="clist">
-      </div>
-    </div>
-    <div class="brow">
-      <button class="alt" data-go="menu">← Volver</button>
-    </div>
+  <button class="alt" id="gear" data-go="opts" data-ti="set">⚙</button>
+</div>
+
+<div id="diff" class="screen">
+  <h2 data-i="diffT"></h2>
+  <p data-i="diffP"></p>
+  <button data-d="easy" data-i="easy"></button>
+  <button data-d="normal" data-i="norm"></button>
+  <button data-d="hard" data-i="hard"></button>
+  <button class="alt" data-go="menu" data-i="back"></button>
+</div>
+
+<div id="opts" class="screen">
+  <h2 data-i="opts"></h2>
+  <button id="oTime"></button>
+  <button id="oGoals"></button>
+  <button id="oLang"></button>
+  <button class="alt" data-go="menu" data-i="back"></button>
+</div>
+
+<div id="lang" class="screen tall">
+  <h2 data-i="lang"></h2>
+  <div class="scroll"><div id="llist"></div></div>
+  <div class="brow"><button class="alt" data-go="opts" data-i="back"></button></div>
+</div>
+
+<div id="tsel" class="screen tall">
+  <h2 id="tsT"></h2>
+  <div id="tprev"></div>
+  <p id="shint"></p>
+  <div class="brow" id="rtog">
+    <button class="alt" id="rpick" data-i="pickT"></button>
+    <button class="alt" id="rrnd" data-i="rndT"></button>
   </div>
-  <div id="chint" class="screen tall">
-    <h2 id="hn">
-    </h2>
-    <div class="scroll">
-      <p id="hd">
-      </p>
-      <p id="hi">
-      </p>
-      <p id="hm">
-      </p>
-    </div>
-    <div class="brow">
-      <button id="hgo">Comenzar</button>
-      <button class="alt" id="hback">← Desafíos</button>
-    </div>
+  <div class="scroll"><div id="sgrid"></div></div>
+  <div class="brow">
+    <button id="sgo" disabled data-i="sGo"></button>
+    <button class="alt" id="sback" data-i="back"></button>
   </div>
-  <script>
+</div>
+
+<div id="end" class="screen">
+  <h1 id="endT"></h1>
+  <p id="endS"></p>
+  <button id="again" data-i="again"></button>
+  <button id="cont" style="display:none" data-i="viewB"></button>
+  <button class="alt" data-go="menu" data-i="main"></button>
+</div>
+
+<div id="tcfg" class="screen tall">
+  <h2 data-i="tourH"></h2>
+  <p id="csel"></p>
+  <div class="scroll" id="cbox">
+    <h3 data-i="cDiff"></h3>
+    <div class="chips" data-k="diff"></div>
+    <h3 data-i="cDur"></h3>
+    <div class="chips" data-k="time"></div>
+    <h3 data-i="cGoals"></h3>
+    <div class="chips" data-k="goals"></div>
+    <h3 data-i="cYour"></h3>
+    <div id="tgrid"></div>
+  </div>
+  <div class="brow">
+    <button id="cgo" disabled data-i="cGo"></button>
+    <button class="alt" data-go="menu" data-i="back"></button>
+  </div>
+</div>
+
+<div id="bracket" class="screen tall">
+  <h2 data-i="brT"></h2>
+  <p id="binfo"></p>
+  <div class="scroll" id="bbox"><div id="bk"></div></div>
+  <p id="bstat"></p>
+  <div class="brow">
+    <button id="bplay"></button>
+    <button class="alt" id="bnew" data-i="newT"></button>
+    <button class="alt" data-go="menu" data-i="menuS"></button>
+  </div>
+</div>
+
+<div id="chal" class="screen tall">
+  <h2 data-i="chalH"></h2>
+  <p id="cprog"></p>
+  <p id="cwarn" style="display:none" data-i="warn"></p>
+  <div class="scroll"><div id="clist"></div></div>
+  <div class="brow"><button class="alt" data-go="menu" data-i="back"></button></div>
+</div>
+
+<div id="chint" class="screen tall">
+  <h2 id="hn"></h2>
+  <div class="scroll"><p id="hd"></p><p id="hi"></p><p id="hm"></p></div>
+  <div class="brow">
+    <button id="hgo" data-i="go"></button>
+    <button class="alt" id="hback" data-i="backC"></button>
+  </div>
+</div>
+
+<script>
 (()=>{
 "use strict";
 
@@ -264,820 +283,15 @@ async function startNewGame(){
   sdkTransition=false;
 }
 
-const FW=1050,FH=680,GD=50,M=24,CW=FW+2*GD,CH_=FH+2*M,CY=FH/2,GY1=CY-95,GY2=CY+95;
-const RC=24,RB=13,MAXD=160,SPD=10.5,MAXB=2300,MAXC=2000,DT=1/240;
-let GAME_TIME=120,WIN_GOALS=3;
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage');
-const $=id=>document.getElementById(id);
-const DNAME={easy:'Fácil',normal:'Normal',hard:'Difícil'};
-let caps,ball,all,posts,turn='blue',state='menu',score={blue:0,red:0},time=GAME_TIME,started=false,drag=null,stopT=0,goalT=0,goalMsg='',moveT=0,acc=0,last=0;
-let mode='two',diff='normal',bot=null,botT=0;
-
-// ---------- Detección de teléfono móvil + orientación horizontal ----------
-const UA=navigator.userAgent||'',UAD=navigator.userAgentData;
-const TABLET_UA=/iPad|Tablet|PlayBook|Silk|Kindle/i.test(UA)||(/Android/i.test(UA)&&!/Mobile/i.test(UA));
-const PHONE_UA=/iPhone|iPod|Windows Phone|IEMobile|BlackBerry|Opera Mini/i.test(UA)||(/Android/i.test(UA)&&/Mobile/i.test(UA));
-const IS_PHONE=!TABLET_UA&&(PHONE_UA||(!!UAD&&UAD.mobile===true))&&(navigator.maxTouchPoints||0)>0;
-const landMQ=window.matchMedia?window.matchMedia('(orientation: landscape)'):null;
-function layout(){
-  const land=landMQ?landMQ.matches:window.innerWidth>window.innerHeight;
-  document.documentElement.classList.toggle('phone-land',IS_PHONE&&land);
-}
-
-const TEAMS=[
-['España','es','#E63946'],['Argentina','ar','#56B4E9'],['Francia','fr','#2643A3'],['Inglaterra','eng','#F2F2F2'],
-['Portugal','pt','#16A34A'],['Brasil','br','#FFD60A'],['Marruecos','ma','#7B2CBF'],['Bélgica','be','#252525'],
-['Países Bajos','nl','#FF7F11'],['México','mx','#008C72'],['Colombia','co','#E84393'],['Suiza','ch','#800F2F'],
-['Alemania','de','#6C757D'],['Croacia','hr','#00A6A6'],['Italia','it','#A3E635'],['Estados Unidos','us','#FF4D6D'],
-['Japón','jp','#F7B2D0'],['Senegal','sn','#B7E4C7'],['Noruega','no','#7F5539'],['Uruguay','uy','#00B4D8'],
-['Dinamarca','dk','#9D4EDD'],['Austria','at','#B08968'],['Irán','ir','#C77DFF'],['Ecuador','ec','#003049'],
-['Egipto','eg','#8D99AE'],['Australia','au','#F72585'],['Canadá','ca','#90BE6D'],['Argelia','dz','#5F0F40'],
-['Costa de Marfil','ci','#FFB703'],['Nigeria','ng','#386641'],['Turquía','tr','#FF006E'],['Corea del Sur','kr','#0077B6']
-];
-
-const RN=['Dieciseisavos','Octavos','Cuartos','Semifinales','Final'];
-const TC={blue:null,red:null},TN={blue:'',red:''},TF={blue:'',red:''};
-let T=null,CFG={sel:-1,diff:'normal',time:120,goals:3},curOpp=0,golden=false,goldT=0;
-const SKEY='chapix_torneo_v1';
-// Estado del modo Desafíos
-let CH=null,chIdx=0,chLs=null,shooter=null,touched=false,PROG={},storeOK=true;
-const CKEY='chapix_desafios_v1';
-
-const fl=c=>c==='eng'?'\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}':[...c.toUpperCase()].map(x=>String.fromCodePoint(127397+x.charCodeAt(0))).join('');
-
-function shade(h,k){
-  const n=parseInt(h.slice(1),16),t=k<0?0:255,a=Math.abs(k);
-  return '#'+[n>>16,(n>>8)&255,n&255].map(v=>Math.round(v+(t-v)*a).toString(16).padStart(2,'0')).join('');
-}
-
-function lum(h){
-  const n=parseInt(h.slice(1),16);
-  return(.299*(n>>16)+.587*((n>>8)&255)+.114*(n&255))/255;
-}
-
-const isBot=()=>mode==='bot'||mode==='tour'||mode==='chal';
-const matchTime=()=>mode==='chal'&&CH?CH.def.time:mode==='tour'&&T?T.time:GAME_TIME;
-const winGoals=()=>mode==='tour'&&T?T.goals:WIN_GOALS;
-const winOf=s=>{
-  if(mode==='chal'&&CH){const w=CH.def.win;return Array.isArray(w)?w[s==='blue'?0:1]:w;}
-  return winGoals();
-};
-const nm=s=>mode==='tour'&&TC[s]?TN[s]:(s==='blue'?'AZULES':'ROJOS');
-
-const mk=(x,y,r,im,t)=>({x,y,r,im,vx:0,vy:0,t});
-posts=[[0,GY1],[0,GY2],[FW,GY1],[FW,GY2]].map(p=>mk(p[0],p[1],6,0,'post'));
-const FORM=[[360,0],[245,-105],[245,105],[130,0]];
-
-function placePieces(){
-  caps=[];
-  const chal=mode==='chal'&&CH,bl=chal&&CH.def.bl||[0,1,2,3],rl=chal&&CH.def.rl||[0,1,2,3];
-  FORM.forEach(([x,dy],i)=>{
-    if(bl.includes(i))caps.push(mk(x,CY+dy,RC,.25,'blue'));
-    if(rl.includes(i))caps.push(mk(FW-x,CY+dy,RC,.25,'red'));
-  });
-  ball=mk(FW/2,CY,RB,1,'ball');
-  all=caps.concat([ball]);
-}
-
-function friction(p,dt){
-  const isB=p.t==='ball',k=isB?1.3:2.2,c=isB?30:60;
-  let sp=Math.hypot(p.vx,p.vy);
-  if(sp===0)return;
-  let ns=sp*Math.exp(-k*dt)-c*dt;
-  if(ns<8){p.vx=p.vy=0;return;}
-  const f=ns/sp;p.vx*=f;p.vy*=f;
-  const mx=isB?MAXB:MAXC;
-  if(ns>mx){p.vx*=mx/ns;p.vy*=mx/ns;}
-}
-
-function collide(a,b){
-  const dx=b.x-a.x,dy=b.y-a.y,rr=a.r+b.r,d2=dx*dx+dy*dy;
-  if(d2>=rr*rr)return;
-  let d=Math.sqrt(d2),nx,ny;
-  if(d<1e-6){nx=1;ny=0;d=0;}else{nx=dx/d;ny=dy/d;}
-  const sum=a.im+b.im;
-  if(sum===0)return;
-  const ov=rr-d;
-  a.x-=nx*ov*a.im/sum;a.y-=ny*ov*a.im/sum;
-  b.x+=nx*ov*b.im/sum;b.y+=ny*ov*b.im/sum;
-  const vn=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
-  if(vn<0){
-    let e=(a.t==='post'||b.t==='post')?.6:(a.t==='ball'||b.t==='ball')?.85:.8;
-    if(-vn<25)e=0;
-    const j=-(1+e)*vn/sum;
-    a.vx-=j*a.im*nx;a.vy-=j*a.im*ny;
-    b.vx+=j*b.im*nx;b.vy+=j*b.im*ny;
-  }
-}
-
-function wallsCap(p){
-  const r=p.r,E=.6;
-  if(p.x<r){p.x=r;p.vx=Math.abs(p.vx)*E;}
-  if(p.x>FW-r){p.x=FW-r;p.vx=-Math.abs(p.vx)*E;}
-  if(p.y<r){p.y=r;p.vy=Math.abs(p.vy)*E;}
-  if(p.y>FH-r){p.y=FH-r;p.vy=-Math.abs(p.vy)*E;}
-}
-
-function wallsBall(b){
-  const r=b.r,E=.8;
-  if(b.x<0||b.x>FW){
-    if(b.y<GY1+r){b.y=GY1+r;b.vy=Math.abs(b.vy)*E;}
-    if(b.y>GY2-r){b.y=GY2-r;b.vy=-Math.abs(b.vy)*E;}
-    if(b.x<-GD+r){b.x=-GD+r;b.vx=Math.abs(b.vx)*E;}
-    if(b.x>FW+GD-r){b.x=FW+GD-r;b.vx=-Math.abs(b.vx)*E;}
-  }else{
-    if(b.y<r){b.y=r;b.vy=Math.abs(b.vy)*E;}
-    if(b.y>FH-r){b.y=FH-r;b.vy=-Math.abs(b.vy)*E;}
-    const mouth=b.y>GY1&&b.y<GY2;
-    if(!mouth){
-      if(b.x<r){b.x=r;b.vx=Math.abs(b.vx)*E;}
-      if(b.x>FW-r){b.x=FW-r;b.vx=-Math.abs(b.vx)*E;}
-    }
-  }
-}
-
-function step(dt){
-  for(const p of all){p.x+=p.vx*dt;p.y+=p.vy*dt;friction(p,dt);}
-  if(ball.x<-ball.r&&ball.y>GY1&&ball.y<GY2)return 'red';
-  if(ball.x>FW+ball.r&&ball.y>GY1&&ball.y<GY2)return 'blue';
-  for(let it=0;it<3;it++){
-    for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++)collide(all[i],all[j]);
-    for(const po of posts)for(const p of all)collide(po,p);
-    for(const p of caps)wallsCap(p);
-    wallsBall(ball);
-  }
-  return null;
-}
-
-function allStopped(){return all.every(p=>p.vx===0&&p.vy===0);}
-
-function launch(c,px,py){
-  const len=Math.hypot(px,py),l=Math.min(len,MAXD);
-  c.vx=-px/len*l*SPD;c.vy=-py/len*l*SPD;
-  started=true;state='moving';stopT=0;moveT=0;acc=0;
-  // Desafíos: se registra el lanzamiento del jugador (no altera la física)
-  if(mode==='chal'&&CH&&c.t==='blue'){CH.shots++;shooter=c;touched=false;}else shooter=null;
-}
-
-const DIFF={
-  easy:{sa:.075,sp:.2,pb:.3,k:6},
-  normal:{sa:.035,sp:.09,pb:.6,k:3},
-  hard:{sa:.012,sp:.035,pb:.85,k:2}
-};
-
-const gauss=()=>(Math.random()+Math.random()+Math.random()-1.5)*2;
-
-function segDist(px,py,ax,ay,bx,by){
-  const dx=bx-ax,dy=by-ay;
-  let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);
-  t=Math.max(0,Math.min(1,t));
-  return Math.hypot(px-ax-t*dx,py-ay-t*dy);
-}
-
-function evalS(g,moved){
-  if(g==='red')return 1e5;
-  if(g==='blue')return -1e5;
-  let s=-Math.hypot(ball.x,ball.y-CY)+.4*Math.hypot(ball.x-FW,ball.y-CY);
-  if(!moved&&ball.x<FW*.5)s-=250;
-  if(ball.x>FW*.45){
-    let m=1e9;
-    for(const c of caps)if(c.t==='red')m=Math.min(m,segDist(c.x,c.y,ball.x,ball.y,FW,CY));
-    s-=m*.7;
-  }
-  return s;
-}
-
-function think(){
-  const P=DIFF[diff],snap=all.map(p=>[p.x,p.y]),bx=ball.x,by=ball.y,cands=[];
-  const restore=()=>all.forEach((p,i)=>{p.x=snap[i][0];p.y=snap[i][1];p.vx=p.vy=0;});
-  const targets=[];
-  for(const ty of [CY,GY1+28,GY2-28])targets.push([0,ty],[0,-ty],[0,2*FH-ty]);
-  const gl=Math.hypot(bx-FW,by-CY)||1,tdx=FW+(bx-FW)/gl*140,tdy=CY+(by-CY)/gl*140;
-  for(const c of caps){
-    if(c.t!=='red')continue;
-    const dirs=[];
-    for(const [tx,ty] of targets){
-      let dx=tx-bx,dy=ty-by;
-      const d=Math.hypot(dx,dy)||1;
-      dx/=d;dy/=d;
-      dirs.push([Math.atan2(by-dy*(RC+RB)-c.y,bx-dx*(RC+RB)-c.x),[.5,.75,1]]);
-    }
-    const ab=Math.atan2(by-c.y,bx-c.x);
-    dirs.push([ab-.1,[.6,1]],[ab,[.6,1]],[ab+.1,[.6,1]]);
-    dirs.push([Math.atan2(tdy-c.y,tdx-c.x),[.15,.25,.4]]);
-    for(const [ang,fs] of dirs)for(const f of fs){
-      const l=f*MAXD;restore();
-      c.vx=Math.cos(ang)*l*SPD;c.vy=Math.sin(ang)*l*SPD;
-      let g=null,moved=false;
-      for(let i=0;i<600&&!g;i++){
-        g=step(DT);
-        if(ball.vx||ball.vy)moved=true;
-        if(i%30===29&&allStopped())break;
-      }
-      cands.push({c,ang,l,s:evalS(g,moved)+Math.random()*15});
-    }
-  }
-  restore();
-  cands.sort((a,b)=>b.s-a.s);
-  const idx=Math.random()<P.pb?0:1+Math.floor(Math.random()*(P.k-1));
-  const ch=cands[Math.min(idx,cands.length-1)];
-  const ang=ch.ang+gauss()*P.sa;
-  const l=Math.max(30,Math.min(MAXD,ch.l*(1+gauss()*P.sp)));
-  return{c:ch.c,px:-Math.cos(ang)*l,py:-Math.sin(ang)*l};
-}
-
-function botUpdate(dt){
-  botT+=dt;
-  if(!bot&&botT>.7){bot=think();botT=0;}
-  if(bot){
-    const k=Math.min(1,botT/.6),e=k*k*(3-2*k);
-    drag={c:bot.c,sx:bot.c.x,sy:bot.c.y,x:bot.c.x+bot.px*e,y:bot.c.y+bot.py*e,id:-1};
-    if(k>=1){
-      const d=bot;bot=null;drag=null;botT=0;
-      launch(d.c,d.px,d.py);
-    }
-  }
-}
-
-function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
-}
-
-function newGame(){
-  const ch=mode==='chal'&&CH,st=ch&&CH.def.st||[0,0];
-  score={blue:st[0],red:st[1]};time=matchTime();started=false;golden=false;goldT=0;
-  chLs=null;shooter=null;touched=false;
-  if(ch){CH.shots=0;CH.miss=0;}
-  turn=isBot()?'blue':(Math.random()<.5?'blue':'red');
-  state='aim';drag=null;stopT=0;moveT=0;goalT=0;acc=0;bot=null;botT=0;
-  if(mode==='tour'&&T){
-    const a=TEAMS[T.team],b=TEAMS[curOpp];
-    TC.blue=a[2];TC.red=b[2];
-    TN.blue=a[0].toUpperCase();TN.red=b[0].toUpperCase();
-    TF.blue=fl(a[1]);TF.red=fl(b[1]);
-  }else{TC.blue=TC.red=null;}
-  placePieces();show(null);$('hud').classList.remove('hide');ui();
-}
-
-function leave(id){
-  sdkStop();
-  CH=null;
-  state='menu';drag=null;bot=null;botT=0;TC.blue=TC.red=null;shooter=null;
-  placePieces();score={blue:0,red:0};time=GAME_TIME;turn='blue';golden=false;goldT=0;
-  $('hud').classList.add('hide');show(id);ui();
-}
-
-function toMenu(){leave('menu');}
-function nextTurn(){turn=turn==='blue'?'red':'blue';state='aim';stopT=0;moveT=0;bot=null;botT=0;}
-
-function chShotEnd(){ // cierra el lanzamiento del jugador: si su chapa no tocó el balón, cuenta como fallo
-  if(shooter){if(!touched)CH.miss++;shooter=null;}
-}
-
-function goal(scorer){
-  const was=score.blue>score.red;
-  score[scorer]++;
-  if(mode==='chal'&&CH){
-    chShotEnd();
-    const now=score.blue>score.red;
-    if(now&&!was)chLs=time; // segundos restantes cuando el azul tomó la ventaja que mantiene
-    else if(!now)chLs=null;
-  }
-  state='goal';goalT=1.4;goalMsg='¡GOL de '+nm(scorer)+'!';
-  turn=scorer==='blue'?'red':'blue';bot=null;botT=0;
-  ui();
-}
-
-function endGame(){
-  sdkStop();
-  state='over';drag=null;bot=null;
-  if(mode==='chal'&&CH){chFinish();return;}
-  const b=score.blue,r=score.red;
-  let t,c;
-  if(b===r){t='EMPATE';c='#fff';}
-  else if(mode==='tour'){t=b>r?'¡VICTORIA!':'DERROTA';c=b>r?'#6db3ff':'#ff7b7b';}
-  else if(mode==='bot'){t=b>r?'¡HAS GANADO!':'GANA EL BOT';c=b>r?'#6db3ff':'#ff7b7b';}
-  else{t=b>r?'¡GANAN LOS AZULES!':'¡GANAN LOS ROJOS!';c=b>r?'#6db3ff':'#ff7b7b';}
-  $('endT').textContent=t;$('endT').style.color=c;
-  $('endS').textContent=nm('blue')+' '+b+' - '+r+' '+nm('red')+(golden?' · Gol de oro':'');
-  const tr=mode==='tour';
-  $('again').style.display=tr?'none':'';
-  $('cont').style.display=tr?'':'none';
-  $('again').textContent='Jugar otra partida';$('cont').textContent='Ver cuadro';
-  if(tr&&b!==r)tRecord(b,r);
-  show('end');
-}
-
-function update(dt){
-  if(goldT>0)goldT-=dt;
-  if(state==='goal'){
-    goalT-=dt;
-    if(goalT<=0){
-      if(golden||score.blue>=winOf('blue')||score.red>=winOf('red'))endGame();
-      else{placePieces();state='aim';stopT=0;moveT=0;}
-    }
-    return;
-  }
-  if(state!=='aim'&&state!=='moving')return;
-  if(started&&!golden){
-    time-=dt;
-    if(time<=0){
-      time=0;ui();
-      if(mode==='tour'&&score.blue===score.red){golden=true;goldT=2.2;}
-      else{endGame();return;}
-    }
-  }
-  if(state==='aim'&&isBot()&&turn==='red')botUpdate(dt);
-  if(state==='moving'){
-    moveT+=dt;acc+=dt;let n=0;
-    while(acc>=DT&&n++<40){
-      const g=step(DT);acc-=DT;
-      if(shooter&&!touched&&Math.hypot(shooter.x-ball.x,shooter.y-ball.y)<=shooter.r+ball.r+.6)touched=true;
-      if(g){goal(g);acc=0;return;}
-    }
-    if(n>=40)acc=0;
-    if(allStopped()){stopT+=dt;if(stopT>.2){chShotEnd();nextTurn();}}else stopT=0;
-    if(moveT>15){for(const p of all)p.vx=p.vy=0;}
-  }
-}
-
-function pos(e){
-  const r=cv.getBoundingClientRect();
-  return{x:(e.clientX-r.left)*CW/r.width-GD,y:(e.clientY-r.top)*CH_/r.height-M};
-}
-
-cv.addEventListener('pointerdown',e=>{
-  if(state!=='aim'||drag||(isBot()&&turn==='red'))return;
-  const p=pos(e);let best=null,bd=1e9;
-  for(const c of caps){
-    if(c.t!==turn)continue;
-    const d=Math.hypot(c.x-p.x,c.y-p.y);
-    if(d<c.r+18&&d<bd){bd=d;best=c;}
-  }
-  if(!best)return;
-  drag={c:best,sx:p.x,sy:p.y,x:p.x,y:p.y,id:e.pointerId};
-  try{cv.setPointerCapture(e.pointerId);}catch(_){}
-  e.preventDefault();
-});
-
-cv.addEventListener('pointermove',e=>{
-  if(!drag||e.pointerId!==drag.id)return;
-  const p=pos(e);drag.x=p.x;drag.y=p.y;e.preventDefault();
-});
-
-cv.addEventListener('pointerup',e=>{
-  if(!drag||e.pointerId!==drag.id)return;
-  const p=pos(e),d=drag;drag=null;
-  if(state!=='aim')return;
-  const px=p.x-d.sx,py=p.y-d.sy;
-  if(Math.hypot(px,py)<10)return;
-  launch(d.c,px,py);
-});
-
-cv.addEventListener('pointercancel',e=>{
-  if(drag&&e.pointerId===drag.id)drag=null;
-});
-
-cv.addEventListener('contextmenu',e=>e.preventDefault());
-
-document.addEventListener('touchmove',e=>{
-  if(!e.target.closest||!e.target.closest('.scroll'))e.preventDefault();
-},{passive:false});
-
-function drawField(){
-  ctx.fillStyle='#0d3b1e';ctx.fillRect(-GD,-M,CW,CH_);
-  const n=14,w=FW/n;
-  for(let i=0;i<n;i++){
-    ctx.fillStyle=i%2?'#2c9246':'#32a04d';
-    ctx.fillRect(i*w,0,w+1,FH);
-  }
-  ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=3;ctx.lineCap='round';
-  ctx.strokeRect(0,0,FW,FH);
-  ctx.beginPath();ctx.moveTo(FW/2,0);ctx.lineTo(FW/2,FH);ctx.stroke();
-  ctx.beginPath();ctx.arc(FW/2,CY,90,0,7);ctx.stroke();
-  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(FW/2,CY,5,0,7);ctx.fill();
-  for(const s of [0,1]){
-    const f=s?-1:1,x0=s?FW:0;
-    ctx.strokeRect(s?FW-165:0,CY-200,165,400);
-    ctx.strokeRect(s?FW-55:0,CY-110,55,220);
-    ctx.beginPath();ctx.arc(x0+f*115,CY,5,0,7);ctx.fill();
-    const a=Math.acos(50/80);ctx.beginPath();
-    if(!s)ctx.arc(115,CY,80,-a,a);
-    else ctx.arc(FW-115,CY,80,Math.PI-a,Math.PI+a);
-    ctx.stroke();
-  }
-  for(const s of [0,1]){
-    const x=s?FW:-GD;
-    ctx.fillStyle='rgba(255,255,255,.14)';
-    ctx.fillRect(x,GY1,GD,GY2-GY1);
-    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;ctx.beginPath();
-    for(let i=0;i<=GD;i+=10){ctx.moveTo(x+i,GY1);ctx.lineTo(x+i,GY2);}
-    for(let y=GY1;y<=GY2;y+=10){ctx.moveTo(x,y);ctx.lineTo(x+GD,y);}
-    ctx.stroke();
-    ctx.strokeStyle='#fff';ctx.lineWidth=4;ctx.strokeRect(x,GY1,GD,GY2-GY1);
-  }
-  ctx.fillStyle='#fff';
-  for(const p of posts){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
-}
-
-function drawCap(c,t){
-  const hx=TC[c.t];let col,bd,ir='rgba(255,255,255,.4)';
-  if(hx){
-    const L=lum(hx);
-    col=[shade(hx,.4),hx,shade(hx,-.35)];
-    bd=L>.6?'#2b2b2b':L<.3?'#e8e8e8':shade(hx,-.5);
-    if(L>.6)ir='rgba(0,0,0,.28)';
-  }else{
-    col=c.t==='blue'?['#8cc4ff','#1e63d6','#0a3585']:['#ff9a9a','#d62828','#7a0c0c'];
-    bd=col[2];
-  }
-  ctx.save();
-  ctx.fillStyle='rgba(0,0,0,.35)';
-  ctx.beginPath();ctx.ellipse(c.x+4,c.y+6,c.r,c.r*.9,0,0,7);ctx.fill();
-  if(c.t===turn&&(state==='aim'||state==='moving')){
-    ctx.shadowColor='#ffe600';ctx.shadowBlur=14+3*Math.sin(t*5);
-    ctx.strokeStyle='#ffe600';ctx.lineWidth=4;
-    ctx.beginPath();ctx.arc(c.x,c.y,c.r+5,0,7);ctx.stroke();
-    ctx.shadowBlur=0;
-  }
-  const g=ctx.createRadialGradient(c.x-8,c.y-8,2,c.x,c.y,c.r);
-  g.addColorStop(0,col[0]);g.addColorStop(.6,col[1]);g.addColorStop(1,col[2]);
-  ctx.fillStyle=g;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,7);ctx.fill();
-  ctx.strokeStyle=bd;ctx.lineWidth=3;ctx.stroke();
-  ctx.strokeStyle=ir;ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(c.x,c.y,c.r*.58,0,7);ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.35)';
-  ctx.beginPath();ctx.ellipse(c.x-8,c.y-9,6,3.5,-.7,0,7);ctx.fill();
-  ctx.restore();
-}
-
-function drawBall(b){
-  ctx.save();
-  ctx.fillStyle='rgba(0,0,0,.35)';
-  ctx.beginPath();ctx.ellipse(b.x+3,b.y+4,b.r,b.r*.9,0,0,7);ctx.fill();
-  const g=ctx.createRadialGradient(b.x-4,b.y-4,1,b.x,b.y,b.r);
-  g.addColorStop(0,'#fff');g.addColorStop(1,'#d4d4d4');
-  ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill();
-  ctx.strokeStyle='#8a8a8a';ctx.lineWidth=1.5;ctx.stroke();
-  ctx.fillStyle='#555';ctx.beginPath();ctx.arc(b.x,b.y,b.r*.32,0,7);ctx.fill();
-  ctx.restore();
-}
-
-function drawAim(){
-  if(!drag)return;
-  const c=drag.c;let px=drag.x-drag.sx,py=drag.y-drag.sy;
-  const len=Math.hypot(px,py);
-  if(len<1)return;
-  const l=Math.min(len,MAXD),ux=px/len,uy=py/len;
-  ctx.save();ctx.lineCap='round';
-  ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=5;
-  ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(c.x+ux*l,c.y+uy*l);ctx.stroke();
-  ctx.restore();
-}
-
-function draw(t){
-  ctx.setTransform(cv.width/CW,0,0,cv.height/CH_,0,0);
-  ctx.translate(GD,M);
-  drawField();
-  for(const c of caps)drawCap(c,t);
-  drawBall(ball);
-  drawAim();
-  if(state==='goal'||goldT>0){
-    const m=state==='goal'?goalMsg:'¡GOL DE ORO!';
-    ctx.save();ctx.font='900 80px system-ui,sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.lineWidth=8;ctx.strokeStyle='#000a';ctx.strokeText(m,FW/2,CY);
-    ctx.fillStyle='#ffe600';ctx.fillText(m,FW/2,CY);ctx.restore();
-  }
-}
-
-function ui(){
-  const tour=mode==='tour'&&TC.blue;
-  $('sb').textContent=score.blue;$('sr').textContent=score.red;
-  const s=Math.ceil(time);
-  $('time').textContent=golden?'⚡ ORO':Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-  $('lb').textContent=tour?TF.blue+' '+TN.blue:'AZULES';
-  $('lr').textContent=tour?TN.red+' '+TF.red:'ROJOS';
-  $('tb').style.color=$('trd').style.color=tour?'#fff':'';
-  $('tb').style.borderBottom=tour?'3px solid '+TC.blue:'';
-  $('trd').style.borderBottom=tour?'3px solid '+TC.red:'';
-  const tn=$('turn');
-  tn.textContent=isBot()?(turn==='red'?'Turno del BOT':'Tu turno · '+nm('blue')):'Turno: '+(turn==='blue'?'AZULES':'ROJOS');
-  tn.style.color=turn==='blue'?'#6db3ff':'#ff7b7b';
-  $('dl').textContent=mode==='chal'&&CH?'Desafío '+(CH.i+1)+(CH.def.bd.length>1?' · '+(CH.round+1)+'/'+CH.def.bd.length:'')+' · '+DNAME[diff]:mode==='tour'&&T?'Torneo · '+RN[T.round]+' · '+DNAME[diff]:mode==='bot'?'BOT: '+DNAME[diff]:'Dos jugadores';
-}
-
-function fit(){
-  const r=stage.getBoundingClientRect(),sc=Math.min(r.width/CW,r.height/CH_);
-  const w=Math.max(10,CW*sc),h=Math.max(10,CH_*sc),d=window.devicePixelRatio||1;
-  cv.style.width=w+'px';cv.style.height=h+'px';
-  cv.width=Math.round(w*d);cv.height=Math.round(h*d);
-}
-
-window.addEventListener('resize',()=>{layout();fit();});
-window.addEventListener('orientationchange',()=>{layout();fit();});
-
-document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
-  const g=b.dataset.go;
-  if(g==='two'){mode='two';startNewGame();}
-  else if(g==='menu')toMenu();
-  else if(g==='tour')openTour();
-  else if(g==='chal')openChal();
-  else show(g);
-}));
-
-document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{
-  diff=b.dataset.d;mode='bot';startNewGame();
-}));
-
-const TIMES=[120,180,240,300,360,420,480,540,600];
-const GOALS=[1,2,3,4,5];
-
-$('oTime').addEventListener('click',()=>{
-  GAME_TIME=TIMES[(TIMES.indexOf(GAME_TIME)+1)%TIMES.length];
-  $('oTime').textContent='Duración: '+GAME_TIME/60+' min';
-});
-
-$('oGoals').addEventListener('click',()=>{
-  WIN_GOALS=GOALS[(GOALS.indexOf(WIN_GOALS)+1)%GOALS.length];
-  $('oGoals').textContent='Goles para ganar: '+WIN_GOALS;
-});
-
-$('rst').addEventListener('click',()=>{if(mode==='chal'&&CH)chBegin(CH.i);else startNewGame();});
-$('bMenu').addEventListener('click',toMenu);
-$('again').addEventListener('click',()=>{if(mode==='chal'&&CH)chBegin(CH.i);else startNewGame();});
-
-function tSave(){
-  try{localStorage.setItem(SKEY,JSON.stringify(T));}catch(e){}
-}
-
-function tLoad(){
-  try{
-    const s=localStorage.getItem(SKEY);
-    T=s?JSON.parse(s):null;
-  }catch(e){T=null;}
-  if(T&&!(T.draw&&T.draw.length===32&&T.res&&T.sc&&TEAMS[T.team]))T=null;
-}
-
-const tParts=r=>r===0?T.draw:T.res[r-1];
-
-function tMatch(){
-  const p=tParts(T.round);
-  for(let k=0;k<p.length;k+=2){
-    if(p[k]===T.team||p[k+1]===T.team){
-      return{i:k/2,opp:p[k]===T.team?p[k+1]:p[k]};
-    }
-  }
-  return null;
-}
-
-function tSim(r){
-  const p=tParts(r);
-  for(let i=0;i<p.length/2;i++){
-    if(T.res[r][i]>=0)continue;
-    const a=p[2*i],b=p[2*i+1];
-    const wa=Math.pow(34-a,1.5),wb=Math.pow(34-b,1.5);
-    const aw=Math.random()<wa/(wa+wb);
-    const g=T.goals,l=Math.floor(Math.random()*g);
-    T.res[r][i]=aw?a:b;
-    T.sc[r][i]=aw?[g,l]:[l,g];
-  }
-}
-
-function tRecord(b,r){
-  const rd=T.round,m=tMatch(),p=tParts(rd),meA=p[2*m.i]===T.team,win=b>r;
-  T.res[rd][m.i]=win?T.team:m.opp;
-  T.sc[rd][m.i]=meA?[b,r]:[r,b];
-  tSim(rd);
-  if(win){
-    if(rd===4)T.champ=true;
-    else T.round=rd+1;
-  }else{
-    T.out=rd;
-    for(let x=rd+1;x<5;x++)tSim(x);
-  }
-  tSave();
-}
-
-function tStart(){
-  if(CFG.sel<0)return;
-  const d=[...Array(32).keys()];
-  for(let i=31;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [d[i],d[j]]=[d[j],d[i]];
-  }
-  T={
-    team:CFG.sel,diff:CFG.diff,time:CFG.time,goals:CFG.goals,draw:d,
-    res:[16,8,4,2,1].map(n=>Array(n).fill(-1)),
-    sc:[16,8,4,2,1].map(n=>Array(n).fill(null)),
-    round:0,out:-1,champ:false
-  };
-  tSave();showBracket();
-}
-
-function tPlay(){
-  const m=tMatch();
-  if(!m)return;
-  curOpp=m.opp;mode='tour';diff=T.diff;
-  startNewGame();
-}
-
-function mRow(id,g,cls){
-  if(id==null||id<0)return '<div class="tr"><i style="background:#555"></i>Por definir</div>';
-  const t=TEAMS[id];
-  return '<div class="tr '+cls+(id===T.team?' me':'')+'"><i style="background:'+t[2]+'"></i>'+fl(t[1])+' '+t[0]+'<b>'+(g==null?'':g)+'</b></div>';
-}
-
-function renderBracket(){
-  const me=TEAMS[T.team],alive=T.out<0&&!T.champ;
-  $('binfo').textContent=fl(me[1])+' '+me[0]+' · BOT '+DNAME[T.diff]+' · '+T.time/60+' min · '+T.goals+(T.goals>1?' goles':' gol');
-  let h='';
-  for(let r=0;r<5;r++){
-    const p=tParts(r),n=16>>r;
-    let ms='';
-    for(let i=0;i<n;i++){
-      const a=p[2*i],b=p[2*i+1],w=T.res[r][i],s=T.sc[r][i]||[null,null];
-      const cur=alive&&r===T.round&&(a===T.team||b===T.team);
-      ms+='<div class="mc'+(cur?' cur':'')+'">'+mRow(a,s[0],w<0?'':a===w?'w':'l')+mRow(b,s[1],w<0?'':b===w?'w':'l')+'</div>';
-    }
-    h+='<div class="rc" data-r="'+r+'"><h4>'+RN[r]+'</h4><div class="ml">'+ms+'</div></div>';
-  }
-  const ch=T.res[4][0];
-  h+='<div class="rc" data-r="5"><h4>Campeón</h4><div class="ml"><div class="mc'+(ch>=0?' cur':'')+'">'+(ch>=0?mRow(ch,null,'w'):mRow(-1))+'</div></div></div>';
-  $('bk').innerHTML=h;
-  const st=$('bstat');
-  if(T.champ)st.textContent='🏆 ¡ERES EL CAMPEÓN!';
-  else if(T.out>=0){
-    const c=TEAMS[T.res[4][0]];
-    st.textContent='Eliminado en '+RN[T.out]+' · Campeón: '+fl(c[1])+' '+c[0];
-  }else{
-    const o=TEAMS[tMatch().opp];
-    st.textContent='Ronda: '+RN[T.round]+' · Rival: '+fl(o[1])+' '+o[0];
-  }
-  $('bplay').style.display=alive?'':'none';
-  $('bplay').textContent='Jugar '+(alive?RN[T.round]:'');
-  const col=$('bk').querySelector('.rc[data-r="'+(alive?T.round:4)+'"]');
-  $('bbox').scrollLeft=col?Math.max(0,$('bbox').scrollLeft+col.getBoundingClientRect().left-$('bk').getBoundingClientRect().left-12):0;
-}
-
-function showBracket(){
-  leave('bracket');
-  renderBracket();
-}
-
-function openCfg(){
-  CFG={sel:-1,diff:'normal',time:TIMES.includes(120)?120:TIMES[0],goals:3};
-  paintCfg();$('cbox').scrollTop=0;show('tcfg');
-}
-
-function openTour(){
-  tLoad();
-  if(T)showBracket();
-  else openCfg();
-}
-
-function paintCfg(){
-  document.querySelectorAll('#tgrid .tc').forEach(el=>el.classList.toggle('sel',+el.dataset.i===CFG.sel));
-  document.querySelectorAll('#tcfg .chip').forEach(el=>el.classList.toggle('on',String(CFG[el.parentNode.dataset.k])===el.dataset.v));
-  $('cgo').disabled=CFG.sel<0;
-  $('csel').textContent=CFG.sel<0?'Elige tu selección':'Tu selección: '+fl(TEAMS[CFG.sel][1])+' '+TEAMS[CFG.sel][0];
-}
-
-function mkChips(k,arr,lab){
-  document.querySelector('.chips[data-k="'+k+'"]').innerHTML=arr.map(v=>'<span class="chip" data-v="'+v+'">'+lab(v)+'</span>').join('');
-}
-
-mkChips('diff',['easy','normal','hard'],v=>DNAME[v]);
-mkChips('time',TIMES,v=>v/60+' min');
-mkChips('goals',GOALS,v=>v+(v>1?' goles':' gol'));
-
-$('tgrid').innerHTML=TEAMS.map((t,i)=>'<div class="tc" data-i="'+i+'"><small>'+(i+1)+'</small><span class="fg">'+fl(t[1])+'</span><b>'+t[0]+'</b><i style="background:'+t[2]+'"></i></div>').join('');
-
-$('tcfg').addEventListener('click',e=>{
-  const c=e.target.closest('.chip'),t=e.target.closest('.tc');
-  if(c){
-    const k=c.parentNode.dataset.k,v=c.dataset.v;
-    CFG[k]=k==='diff'?v:+v;
-    paintCfg();
-  }else if(t){
-    CFG.sel=+t.dataset.i;
-    paintCfg();
-  }
-});
-
-$('cgo').addEventListener('click',tStart);
-$('bplay').addEventListener('click',tPlay);
-$('bnew').addEventListener('click',openCfg);
-
-// ---------- Desafíos ----------
-// bd: dificultad del BOT en cada partido (varios = serie) · st: marcador inicial [azul,rojo]
-// win: goles para terminar (número o [azul,rojo]) · time: segundos · bl/rl: chapas azules/rojas (índices de la formación)
-// ok(R): ¿objetivo cumplido? · m/th: métrica y umbrales [plata,oro] (d=diferencia de goles, t=segundos restantes, s=menos lanzamientos, l=gol decisivo más cerca del final)
-const CHS=[
-{n:'REMONTADA',d:'Gana un partido empezando perdiendo 0-2.',lv:'Media',bd:['normal'],st:[0,2],win:5,time:180,x:'Marcador inicial 0-2 · Partido a 5 goles',ok:R=>R.b>R.r,m:'d',th:[2,3]},
-{n:'GOL EXPRÉS',d:'Marca 3 goles en 60 segundos.',lv:'Media',bd:['normal'],win:[3,99],time:60,x:'El reloj corre desde tu primer golpe',ok:R=>R.b>=3,m:'t',th:[15,30]},
-{n:'IMBATIBLE',d:'Gana un partido sin recibir ningún gol.',lv:'Media',bd:['normal'],win:3,time:120,x:'Partido a 3 goles',ok:R=>R.b>R.r&&R.r===0,m:'t',th:[30,60]},
-{n:'ÚLTIMO SUSPIRO',d:'Marca el gol de la victoria durante los últimos 10 segundos.',lv:'Difícil',bd:['normal'],st:[1,1],win:9,time:45,x:'Empate inicial 1-1 · El gol que te da la victoria debe llegar con 10 s o menos',ok:R=>R.b>R.r&&R.ls!=null&&R.ls<=10,m:'l',th:[-6,-3]},
-{n:'SUPERIORIDAD',d:'Gana por una diferencia de 3 goles o más.',lv:'Media',bd:['normal'],win:5,time:150,x:'Partido a 5 goles',ok:R=>R.b-R.r>=3,m:'t',th:[30,60]},
-{n:'CONTRA EL CAMPEÓN',d:'Derrota al BOT en dificultad difícil.',lv:'Difícil',bd:['hard'],win:3,time:120,x:'Partido a 3 goles',ok:R=>R.b>R.r,m:'d',th:[2,3]},
-{n:'PARTIDO PERFECTO',d:'Gana sin fallar ningún lanzamiento: la chapa que lances debe tocar el balón.',lv:'Difícil',bd:['normal'],win:3,time:150,x:'Cada lanzamiento tuyo cuenta · Es fallo si tu chapa no toca el balón',ok:R=>R.b>R.r&&R.miss===0,m:'s',th:[-9,-6]},
-{n:'DESVENTAJA NUMÉRICA',d:'Juega con 2 chapas contra 4 y consigue la victoria.',lv:'Difícil',bd:['easy'],bl:[0,3],win:3,time:150,x:'Tú tienes 2 chapas · El BOT tiene 4',ok:R=>R.b>R.r,m:'d',th:[2,3]},
-{n:'A CONTRARRELOJ',d:'Marca 2 goles en 30 segundos.',lv:'Difícil',bd:['normal'],win:[2,99],time:30,x:'El reloj corre desde tu primer golpe',ok:R=>R.b>=2,m:'t',th:[8,15]},
-{n:'LA REMONTADA ÉPICA',d:'Gana un partido después de ir perdiendo 0-3.',lv:'Épica',bd:['normal'],st:[0,3],win:6,time:240,x:'Marcador inicial 0-3 · Partido a 6 goles',ok:R=>R.b>R.r,m:'d',th:[2,3]},
-{n:'SIN MARGEN DE ERROR',d:'Gana al BOT difícil sin recibir ningún gol.',lv:'Épica',bd:['hard'],win:3,time:120,x:'Partido a 3 goles contra el BOT difícil',ok:R=>R.b>R.r&&R.r===0,m:'t',th:[30,60]},
-{n:'DOBLE O NADA',d:'Gana dos partidos consecutivos contra el BOT.',lv:'Media',bd:['normal','normal'],win:3,time:120,x:'Dos partidos seguidos a 3 goles · Si pierdes uno, fallas',ok:R=>R.b>R.r,m:'d',th:[3,5]},
-{n:'REY DEL CAMPO',d:'Gana tres partidos consecutivos con dificultad creciente.',lv:'Épica',bd:['easy','normal','hard'],win:3,time:120,x:'Tres partidos seguidos a 3 goles: Fácil, Normal y Difícil',ok:R=>R.b>R.r,m:'d',th:[4,7]},
-{n:'PORTERÍA INVICTA',d:'Completa un partido entero (2 minutos) sin encajar goles.',lv:'Media',bd:['normal'],win:[99,1],time:120,x:'No hay límite de goles: dura los 2 minutos y termina si encajas',ok:R=>R.r===0,m:'d',th:[1,3]},
-{n:'DOMINIO TOTAL',d:'Gana por 3 goles o más de ventaja contra el BOT difícil.',lv:'Épica',bd:['hard'],win:5,time:180,x:'Partido a 5 goles contra el BOT difícil',ok:R=>R.b-R.r>=3,m:'d',th:[4,5]}
-];
-const MED=['','🥉','🥈','🥇'],MEDN=['','Bronce','Plata','Oro'];
-const fmtT=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-
-try{localStorage.setItem('chapix_t','1');localStorage.removeItem('chapix_t');}catch(e){storeOK=false;}
-function pLoad(){
-  try{const s=localStorage.getItem(CKEY);if(s)PROG=JSON.parse(s)||{};}catch(e){}
-}
-function pSave(){
-  try{localStorage.setItem(CKEY,JSON.stringify(PROG));storeOK=true;}catch(e){storeOK=false;}
-}
-
-function renderChal(){
-  const done=Object.keys(PROG).length,cnt=[0,0,0,0];
-  for(const k in PROG)cnt[PROG[k]]++;
-  $('cprog').textContent=done+'/'+CHS.length+' superados · 🥉 '+cnt[1]+' · 🥈 '+cnt[2]+' · 🥇 '+cnt[3];
-  $('cwarn').style.display=storeOK?'none':'';
-  $('clist').innerHTML=CHS.map((c,i)=>{
-    const m=PROG[i],un=i<=done+2,st=m?'done':un?'open':'lock';
-    const tag=m?MED[m]+' Completado':un?'Disponible':'🔒 Bloqueado<small>Supera '+(i-2-done)+' más</small>';
-    const lc={Media:'m','Difícil':'d','Épica':'e'}[c.lv];
-    return '<div class="ch '+st+'" data-i="'+i+'"><span class="cn">'+(i+1)+'</span><div class="ci"><b>'+c.n+'</b><small>'+c.d+'</small><em class="lv'+lc+'">'+c.lv+'</em></div><span class="cs">'+tag+'</span></div>';
-  }).join('');
-}
-function showChal(){leave('chal');renderChal();}
-function openChal(){pLoad();showChal();}
-
-function medTxt(c,k){
-  const v=c.th[k],sd=c.bd.length>1;
-  return c.m==='d'?v+' goles de diferencia'+(sd?' en total':''):c.m==='t'?v+' s restantes':c.m==='s'?'máx. '+(-v)+' lanzamientos':'gol decisivo a ≤'+(-v)+' s del final';
-}
-function chIntro(i){
-  chIdx=i;const c=CHS[i],sd=c.bd.length>1;
-  $('hn').textContent=(i+1)+'. '+c.n;
-  $('hd').textContent=c.d;
-  $('hi').innerHTML='Dificultad: <b>'+c.lv+'</b><br>BOT: '+c.bd.map(b=>DNAME[b]).join(' → ')+' · Tiempo: '+fmtT(c.time)+(sd?' por partido':'')+'<br>'+c.x;
-  $('hm').textContent='🥉 Superarlo · 🥈 '+medTxt(c,0)+' · 🥇 '+medTxt(c,1);
-  show('chint');
-}
-function chBegin(i){CH={def:CHS[i],i,round:0,sb:0,sr:0,shots:0,miss:0,next:false};chRound();}
-function chRound(){mode='chal';diff=CH.def.bd[CH.round];startNewGame();}
-function chCont(){if(CH&&CH.next){CH.round++;chRound();}else showChal();}
-
-function chFinish(){ // comprueba el objetivo con los datos reales de la partida
-  const c=CH.def,n=c.bd.length,last=CH.round>=n-1;
-  const R={b:score.blue,r:score.red,t:Math.max(0,time),shots:CH.shots,miss:CH.miss,ls:chLs};
-  const win=!!c.ok(R);
-  CH.sb+=R.b;CH.sr+=R.r;CH.next=false;
-  let t,col,s=c.n+' · AZULES '+R.b+' - '+R.r+' ROJOS';
-  $('again').style.display='';$('cont').style.display='';
-  if(win&&!last){
-    t='¡PARTIDA '+(CH.round+1)+'/'+n+' SUPERADA!';col='#6db3ff';CH.next=true;
-    $('again').style.display='none';$('cont').textContent='Siguiente partida';
-  }else{
-    if(win){
-      const v=c.m==='d'?(n>1?CH.sb-CH.sr:R.b-R.r):c.m==='t'?R.t:c.m==='s'?-R.shots:-(R.ls==null?99:R.ls);
-      const m=v>=c.th[1]?3:v>=c.th[0]?2:1;
-      if(m>(PROG[CH.i]||0)){PROG[CH.i]=m;pSave();}
-      t='¡DESAFÍO SUPERADO!';col='#6db3ff';s+=' · '+MED[m]+' '+MEDN[m];
-    }else{t='DESAFÍO FALLIDO';col='#ff7b7b';}
-    if(c.m==='s')s+=' · Lanzamientos '+R.shots+' · Fallos '+R.miss;
-    if(!storeOK)s+=' · ⚠ Progreso no guardado';
-    $('again').textContent='Reintentar';$('cont').textContent='Ver desafíos';
-  }
-  $('endT').textContent=t;$('endT').style.color=col;$('endS').textContent=s;
-  show('end');
-}
-
-$('clist').addEventListener('click',e=>{
-  const c=e.target.closest('.ch');
-  if(c&&!c.classList.contains('lock'))chIntro(+c.dataset.i);
-});
-$('hgo').addEventListener('click',()=>chBegin(chIdx));
-$('hback').addEventListener('click',showChal);
-$('cont').addEventListener('click',()=>{
-  if(mode==='chal'&&CH)chCont();
-  else if(T)showBracket();
-  else toMenu();
-});
-
-function loop(ms){
-  const t=ms/1000,dt=Math.min(.1,last?t-last:0);
-  last=t;
-  update(dt);ui();draw(t);
-  requestAnimationFrame(loop);
-}
-
-layout();placePieces();ui();fit();requestAnimationFrame(loop);
-})();
-</script>
-</body>
-</html>
+// =====================================================================
+//  IDIOMAS: para añadir uno nuevo, agrega una entrada en LANGS y un
+//  objeto en LNG, otro en CHT (15 desafíos) y otro en TNM (32 selecciones).
+//  Si falta una clave en un idioma se usa inglés y, si tampoco, español.
+// =====================================================================
+const LANGS=[['es','Español','es'],['en','English','gb'],['fr','Français','fr'],['de','Deutsch','de'],['pt','Português (Brasil)','br'],['it','Italiano','it'],['pl','Polski','pl'],['tr','Türkçe','tr']];
+const LKEY='chapix_lang_v1';
+let LANG='en';
+
+const LNG={
+es:{tag:'⚽ Cuatro chapas por equipo · Un balón · Mucha puntería',m2:'2 Jugadores',mb:'VS BOT',mt:'Torneo',mc:'Desafíos',set:'Ajustes',opts:'Opciones',back:'← Volver',dur:'Duración: {0} min',gls:'Goles para ganar: {0}',lang:'Idioma',menuB:'☰ Menú',rstB:'↻ Reiniciar',diffT:'Elige la dificultad',diffP:'Juegas contra el BOT',easy:'Fácil',norm:'Normal',hard:'Difícil',blue:'AZULES',red:'ROJOS',tBot:'Turno del BOT',tYou:'Tu turno · {0}',tOf:'Turno: {0}',two:'Dos jugadores',botL:'BOT: {0}',tourL:'Torneo · {0} · {1}',chL:'Desafío {0}',gol:'¡GOL de {0}!',gold:'¡GOL DE ORO!',goldT:'⚡ ORO',draw:'EMPATE',winT:'¡GANA {0}!',youW:'¡HAS GANADO!',botW:'GANA EL BOT',vict:'¡VICTORIA!',defe:'DERROTA',again:'Jugar otra partida',viewB:'Ver cuadro',main:'Menú principal',tourH:'TORNEO',pickSel:'Elige tu selección',yourSel:'Tu selección: {0}',cDiff:'Dificultad del BOT',cDur:'Duración del partido',cGoals:'Goles para ganar',cYour:'Tu selección',cGo:'COMENZAR TORNEO',brT:'CUADRO DEL TORNEO',play:'Jugar {0}',newT:'Nuevo torneo',menuS:'← Menú',r0:'Dieciseisavos',r1:'Octavos',r2:'Cuartos',r3:'Semifinales',r4:'Final',champ:'Campeón',tbd:'Por definir',champY:'🏆 ¡ERES EL CAMPEÓN!',elim:'Eliminado en {0} · Campeón: {1}',rInfo:'Ronda: {0} · Rival: {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'{0} gol',gN:'{0} goles',mn:'{0} min',chalH:'DESAFÍOS',prog:'{0}/{1} superados · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ Este navegador bloquea el guardado: el progreso no se conservará al cerrar el juego.',sDone:'Completado',sOpen:'Disponible',sLock:'Bloqueado',sMore:'Supera {0} más',lvM:'Media',lvD:'Difícil',lvE:'Épica',hDiff:'Dificultad',hBot:'BOT',hTime:'Tiempo',hPer:'por partido',mLine:'🥉 Superarlo · 🥈 {0} · 🥇 {1}',mD:'{0} goles de diferencia',mDt:'{0} goles de diferencia en total',mT:'{0} s restantes',mS:'máx. {0} lanzamientos',mL:'gol decisivo a ≤{0} s del final',go:'Comenzar',backC:'← Desafíos',xInit:'Marcador inicial {0}-{1}',xTo:'Partido a {0} goles',xSer:'{0} partidos seguidos · Si pierdes uno, fallas',xClock:'El reloj corre desde tu primer golpe',xLast:'El gol que te da la victoria debe llegar con 10 s o menos',xMiss:'Cada lanzamiento cuenta · Es fallo si tu chapa no toca el balón',xNum:'Tú tienes 2 chapas · El BOT tiene 4',xFull:'Sin límite de goles: dura los 2 minutos y termina si encajas',mOk:'¡PARTIDA {0}/{1} SUPERADA!',nextM:'Siguiente partida',chOk:'¡DESAFÍO SUPERADO!',chFail:'DESAFÍO FALLIDO',retry:'Reintentar',seeC:'Ver desafíos',shots:' · Lanzamientos {0} · Fallos {1}',noSave:' · ⚠ Progreso no guardado',sT2:'2 Jugadores: elige equipos',sTB:'VS BOT: elige equipos',sTC:'Desafío: elige equipos',p1:'Jugador 1',p2:'Jugador 2',rv:'Rival (BOT)',you:'Tú',pickT:'Elegir equipo',rndT:'Aleatorio',sGo:'Comenzar partido',h1:'Jugador 1: elige tu equipo',h2:'Jugador 2: elige tu equipo',hB:'Elige el equipo rival',hY:'Elige tu equipo'},
+en:{tag:'⚽ Four caps per team · One ball · Sharp aim',m2:'2 Players',mb:'VS BOT',mt:'Tournament',mc:'Challenges',set:'Settings',opts:'Options',back:'← Back',dur:'Duration: {0} min',gls:'Goals to win: {0}',lang:'Language',menuB:'☰ Menu',rstB:'↻ Restart',diffT:'Choose the difficulty',diffP:'You play against the BOT',easy:'Easy',norm:'Normal',hard:'Hard',blue:'BLUE',red:'RED',tBot:"BOT's turn",tYou:'Your turn · {0}',tOf:'Turn: {0}',two:'Two players',botL:'BOT: {0}',tourL:'Tournament · {0} · {1}',chL:'Challenge {0}',gol:'GOAL for {0}!',gold:'GOLDEN GOAL!',goldT:'⚡ GOLD',draw:'DRAW',winT:'{0} WINS!',youW:'YOU WON!',botW:'BOT WINS',vict:'VICTORY!',defe:'DEFEAT',again:'Play again',viewB:'View bracket',main:'Main menu',tourH:'TOURNAMENT',pickSel:'Choose your team',yourSel:'Your team: {0}',cDiff:'BOT difficulty',cDur:'Match duration',cGoals:'Goals to win',cYour:'Your team',cGo:'START TOURNAMENT',brT:'TOURNAMENT BRACKET',play:'Play {0}',newT:'New tournament',menuS:'← Menu',r0:'Round of 32',r1:'Round of 16',r2:'Quarter-finals',r3:'Semi-finals',r4:'Final',champ:'Champion',tbd:'To be decided',champY:'🏆 YOU ARE THE CHAMPION!',elim:'Eliminated in {0} · Champion: {1}',rInfo:'Round: {0} · Opponent: {1}',bInfo:'{0} · BOT {1} · {2} min · {3}',g1:'{0} goal',gN:'{0} goals',mn:'{0} min',chalH:'CHALLENGES',prog:'{0}/{1} completed · 🥉 {2} · 🥈 {3} · 🥇 {4}',warn:'⚠ This browser blocks saving: progress will not be kept when you close the game.',sDone:'Completed',sOpen:'Available',sLock:'Locked',sMore:'Complete {0} more',lvM:'Medium',lvD:'Hard',lvE:'Epic',hDiff:'Difficulty',hBot:'BOT',hTime:'Time',hPer:'per match',mLine:'🥉 Complete it · 🥈 {0} · 🥇 {1}',mD:'{0} goals difference',mDt:'{0} goals difference in total',mT:'{0} s left',mS:'max. {0} shots',mL:'decisive goal within {0} s of the end',go:'Start',backC:'← Challenges',xInit:'Starting score {0}-{1}',xTo:'First to {0} goals',xSer:'{0} matches in a row · Lose one and you fail',xClock:'The clock runs from your first shot',xLast:'The winning goal must come with 10 s or less left',xMiss:'Every sho
