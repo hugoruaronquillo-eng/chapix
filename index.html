@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -67,6 +66,20 @@ background:radial-gradient(ellipse at center,#031a0a99 0%,#010a05ee 100%);opacit
 .tr.l{opacity:.45}.tr.w{font-weight:800}.tr.me{background:#ffd60a22}
 .tr b{margin-left:auto;padding-left:6px}
 .tr i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px #fff8;flex:none}
+/* ---- Marcador vertical a la izquierda: SOLO teléfonos móviles en horizontal (clase puesta por JS) ---- */
+html.phone-land body{flex-direction:row}
+html.phone-land #stage{min-width:0}
+html.phone-land #hud{flex:none;flex-direction:column;justify-content:center;align-items:stretch;gap:6px;height:100%;width:clamp(118px,19vw,160px);padding:6px 8px;padding-left:max(8px,env(safe-area-inset-left));border-bottom:0;border-right:2px solid #1f3a2a;overflow:hidden}
+html.phone-land #tb{order:1}
+html.phone-land #trd{order:2;flex-direction:row-reverse}
+html.phone-land #mid{order:3;flex:none}
+html.phone-land .team{font-size:13px;justify-content:space-between;gap:6px;padding-bottom:2px}
+html.phone-land .team b{font-size:24px;padding:0 8px}
+html.phone-land .team span{max-width:80px}
+html.phone-land #time{font-size:26px}
+html.phone-land #turn{display:block;font-size:11px;padding:2px 6px;margin:3px 0}
+html.phone-land #row{flex-direction:column;gap:4px;font-size:11px}
+html.phone-land #row button{width:100%}
 </style>
 </head>
 <body>
@@ -192,6 +205,18 @@ const $=id=>document.getElementById(id);
 const DNAME={easy:'Fácil',normal:'Normal',hard:'Difícil'};
 let caps,ball,all,posts,turn='blue',state='menu',score={blue:0,red:0},time=GAME_TIME,started=false,drag=null,stopT=0,goalT=0,goalMsg='',moveT=0,acc=0,last=0;
 let mode='two',diff='normal',bot=null,botT=0;
+
+// ---------- Detección de teléfono móvil + orientación horizontal ----------
+// No se usa el ancho de pantalla: se combina agente de usuario, userAgentData y pantalla táctil.
+const UA=navigator.userAgent||'',UAD=navigator.userAgentData;
+const TABLET_UA=/iPad|Tablet|PlayBook|Silk|Kindle/i.test(UA)||(/Android/i.test(UA)&&!/Mobile/i.test(UA));
+const PHONE_UA=/iPhone|iPod|Windows Phone|IEMobile|BlackBerry|Opera Mini/i.test(UA)||(/Android/i.test(UA)&&/Mobile/i.test(UA));
+const IS_PHONE=!TABLET_UA&&(PHONE_UA||(!!UAD&&UAD.mobile===true))&&(navigator.maxTouchPoints||0)>0;
+const landMQ=window.matchMedia?window.matchMedia('(orientation: landscape)'):null;
+function layout(){
+  const land=landMQ?landMQ.matches:window.innerWidth>window.innerHeight;
+  document.documentElement.classList.toggle('phone-land',IS_PHONE&&land);
+}
 
 const TEAMS=[
 ['España','es','#E63946'],['Argentina','ar','#56B4E9'],['Francia','fr','#2643A3'],['Inglaterra','eng','#F2F2F2'],
@@ -654,7 +679,8 @@ function fit(){
   cv.width=Math.round(w*d);cv.height=Math.round(h*d);
 }
 
-window.addEventListener('resize',fit);
+window.addEventListener('resize',()=>{layout();fit();});
+window.addEventListener('orientationchange',()=>{layout();fit();});
 
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
   const g=b.dataset.go;
@@ -855,7 +881,7 @@ function loop(ms){
   requestAnimationFrame(loop);
 }
 
-placePieces();ui();fit();requestAnimationFrame(loop);
+layout();placePieces();ui();fit();requestAnimationFrame(loop);
 })();
 </script>
 </body>
