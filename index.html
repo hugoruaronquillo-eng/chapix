@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>CHAPIX</title>
-<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
-<style>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>CHAPIX</title>
+    <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+    <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 body{background:#0a1f12;color:#fff;font-family:system-ui,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;height:100dvh}
@@ -104,109 +104,133 @@ html.phone-land #turn{display:block;font-size:10px;padding:2px 4px;margin:3px 0}
 html.phone-land #row{flex-direction:column;gap:4px;font-size:10px}
 html.phone-land #row button{width:100%;padding:3px 4px}
 </style>
-</head>
-<body>
-<div id="hud" class="hide">
-  <div class="team blue" id="tb"><span id="lb">AZULES</span> <b id="sb">0</b></div>
-  <div id="mid">
-    <div id="time">2:00</div>
-    <div id="turn">Turno: AZULES</div>
-    <div id="row">
-      <button class="sm" id="bMenu">☰ Menú</button>
-      <span id="dl"></span>
-      <button class="sm" id="rst">↻ Reiniciar</button>
+  </head>
+  <body>
+    <div id="hud" class="hide">
+      <div class="team blue" id="tb">
+        <span id="lb">AZULES</span> <b id="sb">0</b>
+      </div>
+      <div id="mid">
+        <div id="time">2:00</div>
+        <div id="turn">Turno: AZULES</div>
+        <div id="row">
+          <button class="sm" id="bMenu">☰ Menú</button>
+          <span id="dl">
+          </span>
+          <button class="sm" id="rst">↻ Reiniciar</button>
+        </div>
+      </div>
+      <div class="team red" id="trd">
+        <b id="sr">0</b> <span id="lr">ROJOS</span>
+      </div>
     </div>
+    <div id="stage">
+      <canvas id="cv">
+      </canvas>
+    </div>
+    <div id="menu" class="screen on">
+      <h1>CHAP<span>IX</span>
+    </h1>
+    <p>⚽ Cuatro chapas por equipo · Un balón · Mucha puntería</p>
+    <div class="mgrid">
+      <button data-go="two">2 Jugadores</button>
+      <button data-go="diff">VS BOT</button>
+      <button data-go="tour">Torneo</button>
+      <button data-go="chal">Desafíos</button>
+    </div>
+    <button class="alt" id="gear" data-go="opts" aria-label="Ajustes" title="Ajustes">⚙</button>
   </div>
-  <div class="team red" id="trd"><b id="sr">0</b> <span id="lr">ROJOS</span></div>
-</div>
-
-<div id="stage"><canvas id="cv"></canvas></div>
-
-<div id="menu" class="screen on">
-  <h1>CHAP<span>IX</span></h1>
-  <p>⚽ Cuatro chapas por equipo · Un balón · Mucha puntería</p>
-  <div class="mgrid">
-    <button data-go="two">2 Jugadores</button>
-    <button data-go="diff">VS BOT</button>
-    <button data-go="tour">Torneo</button>
-    <button data-go="chal">Desafíos</button>
-  </div>
-  <button class="alt" id="gear" data-go="opts" aria-label="Ajustes" title="Ajustes">⚙</button>
-</div>
-
-<div id="diff" class="screen">
-  <h2>Elige la dificultad</h2>
-  <p>Juegas con los AZULES contra el BOT (ROJOS)</p>
-  <button data-d="easy">Fácil</button>
-  <button data-d="normal">Normal</button>
-  <button data-d="hard">Difícil</button>
-  <button class="alt" data-go="menu">← Volver</button>
-</div>
-
-<div id="opts" class="screen">
-  <h2>Opciones</h2>
-  <button id="oTime">Duración: 2 min</button>
-  <button id="oGoals">Goles para ganar: 3</button>
-  <button class="alt" data-go="menu">← Volver</button>
-</div>
-
-<div id="end" class="screen">
-  <h1 id="endT"></h1>
-  <p id="endS"></p>
-  <button id="again">Jugar otra partida</button>
-  <button id="cont" style="display:none">Ver cuadro</button>
-  <button class="alt" data-go="menu">Menú principal</button>
-</div>
-
-<div id="tcfg" class="screen tall">
-  <h2>TORNEO</h2>
-  <p id="csel">Elige tu selección</p>
-  <div class="scroll" id="cbox">
-    <h3>Dificultad del BOT</h3>
-    <div class="chips" data-k="diff"></div>
-    <h3>Duración del partido</h3>
-    <div class="chips" data-k="time"></div>
-    <h3>Goles para ganar</h3>
-    <div class="chips" data-k="goals"></div>
-    <h3>Tu selección</h3>
-    <div id="tgrid"></div>
-  </div>
-  <div class="brow">
-    <button id="cgo" disabled>COMENZAR TORNEO</button>
+  <div id="diff" class="screen">
+    <h2>Elige la dificultad</h2>
+    <p>Juegas con los AZULES contra el BOT (ROJOS)</p>
+    <button data-d="easy">Fácil</button>
+    <button data-d="normal">Normal</button>
+    <button data-d="hard">Difícil</button>
     <button class="alt" data-go="menu">← Volver</button>
   </div>
-</div>
-
-<div id="bracket" class="screen tall">
-  <h2>CUADRO DEL TORNEO</h2>
-  <p id="binfo"></p>
-  <div class="scroll" id="bbox"><div id="bk"></div></div>
-  <p id="bstat"></p>
-  <div class="brow">
-    <button id="bplay">Jugar partido</button>
-    <button class="alt" id="bnew">Nuevo torneo</button>
-    <button class="alt" data-go="menu">← Menú</button>
+  <div id="opts" class="screen">
+    <h2>Opciones</h2>
+    <button id="oTime">Duración: 2 min</button>
+    <button id="oGoals">Goles para ganar: 3</button>
+    <button class="alt" data-go="menu">← Volver</button>
   </div>
-</div>
-
-<div id="chal" class="screen tall">
-  <h2>DESAFÍOS</h2>
-  <p id="cprog"></p>
-  <p id="cwarn" style="display:none">⚠ Este navegador bloquea el guardado: el progreso no se conservará al cerrar el juego.</p>
-  <div class="scroll"><div id="clist"></div></div>
-  <div class="brow"><button class="alt" data-go="menu">← Volver</button></div>
-</div>
-
-<div id="chint" class="screen tall">
-  <h2 id="hn"></h2>
-  <div class="scroll"><p id="hd"></p><p id="hi"></p><p id="hm"></p></div>
-  <div class="brow">
-    <button id="hgo">Comenzar</button>
-    <button class="alt" id="hback">← Desafíos</button>
+  <div id="end" class="screen">
+    <h1 id="endT">
+    </h1>
+    <p id="endS">
+    </p>
+    <button id="again">Jugar otra partida</button>
+    <button id="cont" style="display:none">Ver cuadro</button>
+    <button class="alt" data-go="menu">Menú principal</button>
   </div>
-</div>
-
-<script>
+  <div id="tcfg" class="screen tall">
+    <h2>TORNEO</h2>
+    <p id="csel">Elige tu selección</p>
+    <div class="scroll" id="cbox">
+      <h3>Dificultad del BOT</h3>
+      <div class="chips" data-k="diff">
+      </div>
+      <h3>Duración del partido</h3>
+      <div class="chips" data-k="time">
+      </div>
+      <h3>Goles para ganar</h3>
+      <div class="chips" data-k="goals">
+      </div>
+      <h3>Tu selección</h3>
+      <div id="tgrid">
+      </div>
+    </div>
+    <div class="brow">
+      <button id="cgo" disabled>COMENZAR TORNEO</button>
+      <button class="alt" data-go="menu">← Volver</button>
+    </div>
+  </div>
+  <div id="bracket" class="screen tall">
+    <h2>CUADRO DEL TORNEO</h2>
+    <p id="binfo">
+    </p>
+    <div class="scroll" id="bbox">
+      <div id="bk">
+      </div>
+    </div>
+    <p id="bstat">
+    </p>
+    <div class="brow">
+      <button id="bplay">Jugar partido</button>
+      <button class="alt" id="bnew">Nuevo torneo</button>
+      <button class="alt" data-go="menu">← Menú</button>
+    </div>
+  </div>
+  <div id="chal" class="screen tall">
+    <h2>DESAFÍOS</h2>
+    <p id="cprog">
+    </p>
+    <p id="cwarn" style="display:none">⚠ Este navegador bloquea el guardado: el progreso no se conservará al cerrar el juego.</p>
+    <div class="scroll">
+      <div id="clist">
+      </div>
+    </div>
+    <div class="brow">
+      <button class="alt" data-go="menu">← Volver</button>
+    </div>
+  </div>
+  <div id="chint" class="screen tall">
+    <h2 id="hn">
+    </h2>
+    <div class="scroll">
+      <p id="hd">
+      </p>
+      <p id="hi">
+      </p>
+      <p id="hm">
+      </p>
+    </div>
+    <div class="brow">
+      <button id="hgo">Comenzar</button>
+      <button class="alt" id="hback">← Desafíos</button>
+    </div>
+  </div>
+  <script>
 (()=>{
 "use strict";
 
